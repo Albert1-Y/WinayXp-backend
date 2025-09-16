@@ -1,1 +1,2 @@
-"# WinayXp-backend" 
+# WiñayXp-backend
+- *docker compose up*
