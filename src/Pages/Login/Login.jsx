@@ -1,182 +1,178 @@
-import React, { useState, useEffect, useContext  } from "react";
+import React, { useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import "./Login.css";
-import Button from "../../components/button/Button";
 import Table from "../../components/Table/Table";
-import TextField from "../../components/TextField/TextField";
 
 const Login = () => {
-    const navigate = useNavigate();
-    const { rol, setRol } = useContext(AuthContext);
-    const [rankingData, setRankingData] = useState([]);
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [errorMessage, setErrorMessage] = useState(""); // Estado para el mensaje de error
+  const navigate = useNavigate();
+  const { rol } = useContext(AuthContext);
+  const [rankingData, setRankingData] = React.useState([]);
+  const [error, setError] = React.useState("");
 
-    useEffect(() => {
-        if (rol === "administrador" || rol === "tutor" || rol === "estudiante") 
-            {
-            navigate("/dashboard");
-        }
-        else (rol === null || rol === undefined)
-            {
-            navigate("/");
-        }
-    }, [rol]);
+  // Redirigir si ya hay sesión
+  useEffect(() => {
+    if (rol === "administrador" || rol === "tutor" || rol === "estudiante") {
+      navigate("/dashboard");
+    }
+  }, [rol, navigate]);
 
-    // Fetch ranking data on component mount
-    useEffect(() => {
-        fetch(`${import.meta.env.VITE_API_URL}/cedhi/login`)
-            .then(response => response.json())
-            .then(data => {
-                const sortedData = data.sort((a, b) => b.credito_total - a.credito_total);
-                setRankingData(sortedData);
-            })
-            .catch(error => {
-                console.error("Error al obtener el ranking:", error);
-            });
-    }, []);
+  // Ranking
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/cedhi/login`)
+      .then((res) => res.json())
+      .then((data) => {
+        const sorted = data.sort((a, b) => b.credito_total - a.credito_total);
+        setRankingData(sorted);
+      })
+      .catch((err) => console.error("Error al obtener el ranking:", err));
+  }, []);
 
+  const columns = ["Pos", "Nombre", "Apellido", "Carrera", "Puntos CEDHI"];
+  const customRender = (column, row, index) => {
+    switch (column) {
+      case "Pos":
+        return index + 1;
+      case "Nombre":
+        return row.nombre;
+      case "Apellido":
+        return row.apellido;
+      case "Carrera":
+        return row.carrera;
+      case "Puntos CEDHI":
+        return row.credito_total;
+      default:
+        return row[column];
+    }
+  };
 
-    useEffect(() => {
-        console.log(rankingData);
-    }, [rankingData]);
+  // 🔑 Google Login (con hint opcional de dominio)
+  const domains = (import.meta.env.VITE_ALLOWED_DOMAINS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-    // Columnas para la tabla, actualizadas para mostrar solo las que necesitamos
-    const columns = ["Pos", "Nombre", "Apellido", "Carrera", "Puntos CEDHI"];
+  const handleGoogleLogin = (domain) => {
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const qs = domain ? `?hd=${encodeURIComponent(domain)}` : "";
+    window.location.href = `${apiUrl}/auth/google/start${qs}`;
+  };
 
-    // Custom render para las filas
-    const customRender = (column, row, index) => {
-        switch (column) {
-            case "Pos":
-                return index + 1;
-            case "Nombre":
-                return row.nombre;
-            case "Apellido":
-                return row.apellido;
-            case "Carrera":
-                return row.carrera;
-            case "Puntos CEDHI":
-                return row.credito_total;
-            default:
-                return row[column];
-        }
-    };
+  // Leer errores de la URL (?error=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err) {
+      const MSGS = {
+        missing_params: "Faltan parámetros del proveedor.",
+        invalid_state: "La sesión de login expiró. Intenta de nuevo.",
+        exchange_failed: "No se pudo completar el intercambio de código.",
+        invalid_id_token: "Token inválido. Intenta nuevamente.",
+        email_not_verified: "Tu correo de Google no está verificado.",
+        not_whitelisted: "Tu correo no está autorizado por la institución.",
+        no_persona: "No se pudo crear tu cuenta. Contacta a soporte.",
+        db_error: "Error de base de datos. Intenta más tarde.",
+        callback_error: "Ocurrió un error al iniciar sesión. Intenta de nuevo.",
+      };
+      setError(MSGS[err] || "Error desconocido al iniciar sesión.");
 
-    const handleLogin = (e) => {
-        e.preventDefault(); // Evita que el formulario recargue la página
+      // Limpia el parámetro de la barra de direcciones (no recarga)
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url);
+    }
+  }, []);
 
-        // Resetear cualquier mensaje de error previo
-        setErrorMessage("");
+  return (
+    <div className="login-container">
+      <div className="login-grid">
+        {/* Caja 1: Login */}
+        <div className="login-box">
+          <div className="logo-container">
+            <img src="/CEDHIlogo.png" alt="CEDHI Logo" className="login-logo" />
+          </div>
+          <h2>Iniciar Sesión</h2>
 
-        // Validaciones básicas
-        if (!email.trim()) {
-            setErrorMessage("El correo electrónico es obligatorio");
-            return;
-        }
-
-        if (!password.trim()) {
-            setErrorMessage("La contraseña es obligatoria");
-            return;
-        }
-
-        const loginData = {
-            email: email,
-            password: password,
-        };
-
-        // Realiza el POST para enviar email y password
-        fetch(`${import.meta.env.VITE_API_URL}/cedhi/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(loginData),
-            credentials: "include"
-        })
-            .then(response => {
-                if (response.ok) {
-                    return response.json(); // Respuesta exitosa
-                } else {
-                    // Verificar el tipo de error según el código de estado
-                    if (response.status === 401) {
-                        throw new Error("Credenciales incorrectas. Verifica tu correo y contraseña.");
-                    } else if (response.status === 404) {
-                        throw new Error("Usuario no encontrado. Verifica tu correo electrónico.");
-                    } else if (response.status === 403) {
-                        throw new Error("Acceso denegado. Tu cuenta podría estar desactivada.");
-                    } else {
-                        throw new Error("Error en el servidor. Intenta más tarde.");
-                    }
-                }
-            })
-            .then(data => {
-                setRol(data.rol); // Guardamos el rol en el contexto
-                switch (data.rol) {
-                    case "administrador":
-                        navigate("/dashboard");
-                        break;
-                    case "estudiante":
-                        navigate("/dashboard");
-                        break;
-                    case "tutor":
-                        navigate("/dashboard");
-                        break;
-                    default:
-                        setErrorMessage("Rol de usuario no reconocido");
-                }
-            })
-            .catch(error => {
-                console.error("Error en la autenticación:", error);
-                setErrorMessage(error.message || "Error al iniciar sesión. Intenta nuevamente.");
-            });
-    };
-
-    return (
-        
-        <div className="login-container">
-            <div className="login-grid">
-                {/* Contenedor 1 */}
-                <div className="login-box">
-                    <div className="logo-container">
-                        <img src="/CEDHIlogo.png" alt="CEDHI Logo" className="login-logo" />
-                    </div>
-                    <h2>Iniciar Sesión</h2>
-                    <form onSubmit={handleLogin}> {/* Usar onSubmit para evitar recargar la página */}
-                        <div className="form-group">
-                            <label htmlFor="email">Correo Electrónico</label>
-                            <TextField
-                                placeholder="ejemplo@correo.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)} // Maneja el cambio del email
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="password">Contraseña</label>
-                            <TextField
-                                type="password" // Cambiar tipo a "password"
-                                placeholder="contraseña"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)} // Maneja el cambio de la contraseña
-                            />
-                        </div>
-                        {errorMessage && <div className="error-message">{errorMessage}</div>} {/* Muestra el mensaje de error si existe */}
-                        <Button text="Iniciar Sesión" styleType="black" type="submit" />
-                    </form>
-                </div>
-
-                {/* Contenedor 2 */}
-                <div className="login-box">
-                    <div className="logo-container">
-                        <img src="/Wiñay.png" alt="Wiñay Logo" className="login-logo" />
-                    </div>
-                    <h2>Ranking de Estudiantes</h2>
-                    <Table columns={columns} data={rankingData.slice(0, 10)} customRender={customRender} />
-                </div>
+          {/* 🔴 Banner de error visible */}
+          {error && (
+            <div
+              style={{
+                background: "#fde8e8",
+                border: "1px solid #f5c2c7",
+                color: "#7f1d1d",
+                borderRadius: 8,
+                padding: "10px 12px",
+                marginBottom: 12,
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+              role="alert"
+              aria-live="assertive"
+            >
+              <span>{error}</span>
+              <button
+                onClick={() => setError("")}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  color: "#7f1d1d",
+                }}
+                aria-label="Cerrar mensaje de error"
+              >
+                ✕
+              </button>
             </div>
+          )}
+
+          {/* Botones de Google */}
+          {domains.length > 0 ? (
+            domains.map((d) => (
+              <button
+                key={d}
+                className="login-button"
+                onClick={() => handleGoogleLogin(d)}
+                style={{ marginBottom: 8 }}
+              >
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google logo"
+                  style={{ width: 20, marginRight: 8 }}
+                />
+                Iniciar sesión con Google (@{d})
+              </button>
+            ))
+          ) : (
+            <button className="login-button" onClick={() => handleGoogleLogin()}>
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google logo"
+                style={{ width: 20, marginRight: 8 }}
+              />
+              Iniciar sesión con Google
+            </button>
+          )}
         </div>
-    );
+
+        {/* Caja 2: Ranking */}
+        <div className="login-box">
+          <div className="logo-container">
+            <img src="/Wiñay.png" alt="Wiñay Logo" className="login-logo" />
+          </div>
+          <h2>Ranking de Estudiantes</h2>
+          <Table
+            columns={columns}
+            data={rankingData.slice(0, 10)}
+            customRender={customRender}
+          />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Login;

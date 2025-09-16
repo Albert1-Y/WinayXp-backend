@@ -1,63 +1,55 @@
 // src/context/AuthContext.jsx
-import { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useEffect, useState } from "react";
 
-// Crear el contexto
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// Hook personalizado para usar el contexto
-export const useAuth = () => useContext(AuthContext);
 
-// Provider que envolverá tu app
-export const AuthProvider = ({ children }) => {
-    // Inicializar el rol desde localStorage si existe
-    const [rol, setRol] = useState(() => {
-        const storedRol = localStorage.getItem("userRol");
-        return storedRol || null;
-    });
+export function AuthProvider({ children }) {
+  const [rol, setRol] = useState(null);       // 'administrador' | 'tutor' | 'estudiante' | null
+  const [user, setUser] = useState(null);     // objeto con info de /me
+  const [loading, setLoading] = useState(true);
 
-    // Función para establecer el rol de forma segura
-    const setRolSeguro = (nuevoRol) => {
-        if (nuevoRol) {
-            localStorage.setItem("userRol", nuevoRol);
-        } else {
-            localStorage.removeItem("userRol");
-        }
-        setRol(nuevoRol);
-    };
-
-    // Función para cerrar sesión y limpiar todo el localStorage
-    const logout = () => {
-        localStorage.clear(); // Limpia todo el localStorage
+  async function loadSession() {
+    const r = await fetch(`${API}/me`, { credentials: 'include' });
+    if (r.ok) {
+        const me = await r.json();
+        setRol(me.rol);            // y lo que necesites
+    } else {
+        // 401 = no autenticado; 404 = no está en DB
         setRol(null);
-        window.location.href = '/#/'; // Redirecciona a la página de login
-    };
+    }
+  }
 
-    // Verificamos el rol al montar el componente
-    useEffect(() => {
-        const storedRol = localStorage.getItem("userRol");
-        if (storedRol && rol !== storedRol) {
-            setRol(storedRol);
-        }
-    }, []);
+  // AuthHandler.jsx (o AuthContext.jsx donde hagas la carga de sesión)
+useEffect(() => {
+  const loadSession = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        // 401/403/404 => sin sesión
+        setUser(null);
+        setRol(null);
+        return;
+      }
+      const data = await res.json();
+      setUser(data);
+      setRol(data.rol);
+    } catch (e) {
+      console.error('Error cargando sesión:', e);
+      setUser(null);
+      setRol(null);
+    }
+  };
+  loadSession();
+}, []);
 
-    // Guardar el rol en localStorage cada vez que cambie
-    useEffect(() => {
-        if (rol) {
-            localStorage.setItem("userRol", rol);
-        } else {
-            localStorage.removeItem("userRol");
-        }
-    }, [rol]);
+  const value = { rol, setRol, user, setUser, loading, reloadSession: loadSession };
 
-    const value = {
-        rol,
-        setRol: setRolSeguro,
-        logout
-    };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+// (opcional) helper para consumir el contexto
+export const useAuth = () => React.useContext(AuthContext);

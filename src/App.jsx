@@ -13,6 +13,7 @@ import Perfil from "./Pages/Perfil/Perfil.jsx";
 import Tomar_Asistencia from "./Pages/Tomar_Asistencia/Tomar_Asistencia";
 import Ranking from "./Pages/RankingEstudiantes/RankingEstudiantes.jsx";
 import AuthHandler from "./components/AuthHandler/AuthHandler";
+import AuthCallback from "./Pages/Login/AuthCallback";
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
             <AuthHandler />
             <Routes>
                 <Route path="/" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/tutores" element={<Tutores />} />
                 <Route path="/create_tutores" element={<Create_Tutores />} />
