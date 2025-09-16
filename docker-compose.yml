@@ -9,6 +9,9 @@ services:
     # (opcional) refuerza SSL en entorno
     environment:
       PGSSLMODE: require
+      # asegura que pase ALLOW_GMAIL si no usas env_file para todo
+      ALLOW_GMAIL: "${ALLOW_GMAIL}"
     ports:
       - "3000:3000"
     restart: unless-stopped
+

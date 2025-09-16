@@ -9,16 +9,26 @@ import { verifyGoogleIdToken, buildAuthUrl } from '../Utils/google.js';
 /* -------- helpers de negocio -------- */
 
 async function isDomainAllowed(domain) {
+  // 1) Si estamos en modo pruebas y es gmail.com → permitir
+  const allowGmail = process.env.ALLOW_GMAIL === 'true';
+  if (allowGmail && domain === 'gmail.com') return true;
+
+  // 2) Dominios permitidos por ENV
   const envList = (process.env.ALLOWED_DOMAINS || '')
-    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+
   if (envList.includes(domain)) return true;
 
+  // 3) Dominios permitidos por BD
   const { rows } = await db.query(
     `SELECT 1 FROM institucion WHERE dominio_email=$1 AND esta_activa=TRUE LIMIT 1`,
     [domain]
   );
   return rows.length > 0;
 }
+
 
 async function isWhitelistedEmail(email) {
   const { rows } = await db.query(
@@ -95,11 +105,13 @@ export async function googleStart(req, res) {
   const state = crypto.randomUUID();
   const codeVerifier = crypto.randomBytes(32).toString('base64url');
   const codeChallenge = crypto.createHash('sha256')
-    .update(codeVerifier).digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    .update(codeVerifier).digest('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
   await savePkceState(state, codeVerifier, process.env.OAUTH_REDIRECT_URI);
 
-  const firstDomain = (process.env.ALLOWED_DOMAINS || '').split(',')[0]?.trim();
+  // lee el hint de dominio que viene desde el frontend (si lo envías con ?hd=)
+  const hd = (req.query.hd || '').trim();
 
   const url = buildAuthUrl({
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -109,21 +121,37 @@ export async function googleStart(req, res) {
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     state,
-    hd: firstDomain || ''
+    prompt: 'select_account',
+    include_granted_scopes: 'false',
+    ...(hd ? { hd } : {}), // solo añade hd si existe
   });
 
   res.redirect(url);
 }
 
+function redirectOk(res, front, path = '/dashboard') {
+  return res.redirect(`${front}${path}`);
+}
+function redirectErr(res, code) {
+  const front = process.env.APP_ORIGIN || "http://localhost:5173";
+  return res.redirect(`${front}/login?error=${encodeURIComponent(code)}`);
+}
+
 export async function googleCallback(req, res) {
-  const { code, state } = req.query;
   const front = process.env.APP_ORIGIN || '/';
-  if (!code || !state) return res.status(400).send('faltan parámetros');
+
+  const { code, state } = req.query;
+  if (!code || !state) return redirectErr(res, 'missing_params');
+
+  // 1) Validar y consumir PKCE state
+  const saved = await getPkceState(state).catch((e) => {
+    console.error('[oauth] getPkceState error:', e);
+    return null;
+  });
+  if (!saved) return redirectErr(res, 'invalid_state');
 
   try {
-    const saved = await getPkceState(state);
-    if (!saved) return res.status(400).send('state inválido o expirado');
-
+    // 2) Intercambiar code por tokens
     const tokenRes = await axios.post(
       'https://oauth2.googleapis.com/token',
       new URLSearchParams({
@@ -132,14 +160,27 @@ export async function googleCallback(req, res) {
         code,
         code_verifier: saved.code_verifier,
         redirect_uri: process.env.OAUTH_REDIRECT_URI,
-        grant_type: 'authorization_code'
+        grant_type: 'authorization_code',
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-    await deletePkceState(state);
 
-    const { id_token } = tokenRes.data;
-    const claims = await verifyGoogleIdToken(id_token, process.env.GOOGLE_CLIENT_ID);
+    // Consumir el state pase lo que pase
+    await deletePkceState(state).catch((e) =>
+      console.warn('[oauth] deletePkceState warn:', e)
+    );
+
+    const { id_token } = tokenRes.data || {};
+    if (!id_token) return redirectErr(res, 'exchange_failed');
+
+    // 3) Verificar ID Token
+    let claims;
+    try {
+      claims = await verifyGoogleIdToken(id_token, process.env.GOOGLE_CLIENT_ID);
+    } catch (e) {
+      console.error('[oauth] invalid id_token:', e?.response?.data || e?.message || e);
+      return redirectErr(res, 'invalid_id_token');
+    }
 
     const email = claims.email;
     const email_verified = !!claims.email_verified;
@@ -147,36 +188,48 @@ export async function googleCallback(req, res) {
     const hd = claims.hd || null;
 
     if (!email || !email_verified) {
-      await auditLogin(null, false, req, 'email no verificado');
-      return res.status(401).send('email no verificado');
+      await auditLogin(null, false, req, 'email_no_verificado');
+      return redirectErr(res, 'email_not_verified');
     }
 
+    // 4) Reglas de acceso institucional
     const domain = email.split('@')[1]?.toLowerCase() || '';
-    const domainOk = await isDomainAllowed(domain);
-    const wlOk = await isWhitelistedEmail(email);
+    const domainOk = await isDomainAllowed(domain).catch((e) => {
+      console.error('[oauth] isDomainAllowed error:', e);
+      return false;
+    });
+    const wlOk = await isWhitelistedEmail(email).catch((e) => {
+      console.error('[oauth] isWhitelistedEmail error:', e);
+      return false;
+    });
+
     if (!(domainOk || wlOk)) {
-      await auditLogin(null, false, req, 'no pertenece a la institución');
-      return res.status(403).send('no pertenece a la institución');
+      await auditLogin(null, false, req, 'no_institucional');
+      return redirectErr(res, 'not_whitelisted');
     }
 
-    // asegurar persona
-    let idPersona;
-    try {
-      idPersona = await ensurePersonaForEmail(email, claims.name);
-    } catch {
-      idPersona = await findPersonaIdByEmail(email);
-      if (!idPersona) {
-        await auditLogin(null, false, req, 'no se pudo crear persona');
-        return res.status(403).send('no autorizado');
+    // 5) Asegurar persona
+    let idPersona = await findPersonaIdByEmail(email).catch(() => null);
+    if (!idPersona) {
+      try {
+        idPersona = await ensurePersonaForEmail(email, claims.name);
+      } catch (e) {
+        console.error('[oauth] ensurePersonaForEmail error:', e);
+        await auditLogin(null, false, req, 'no_persona');
+        return redirectErr(res, 'no_persona');
       }
     }
 
-    // vincular google
-    await upsertUsuarioGoogle(idPersona, { sub, email, email_verified, hd });
+    // 6) Vincular google + auditoría
+    try {
+      await upsertUsuarioGoogle(idPersona, { sub, email, email_verified, hd });
+      await auditLogin(idPersona, true, req, null);
+    } catch (e) {
+      console.error('[oauth] upsert/audit error:', e);
+      return redirectErr(res, 'db_error');
+    }
 
-    await auditLogin(idPersona, true, req, null);
-
-    // sesión propia
+    // 7) Crear cookie de sesión
     const token = jwt.sign(
       { uid: idPersona, rol: 'estudiante' },
       process.env.JWT_SECRET,
@@ -185,20 +238,23 @@ export async function googleCallback(req, res) {
 
     res.cookie('app_session', token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      sameSite: 'none',   // 👈 importante
+      secure: true,       // 👈 requerido por Chrome para SameSite=None (vale en localhost)
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.redirect(`${front}/dashboard`);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('error en callback');
+    return redirectOk(res, front, '/dashboard');
+  } catch (e) {
+    console.error('[oauth] callback error:', e);
+    return redirectErr(res, 'callback_error');
   }
 }
 
 export async function me(req, res) {
-  const uid = req.session?.uid;
+  const uid = req.user?.uid;
+  if (!uid) return res.status(401).json({ error: 'No autenticado' });
+
   const { rows } = await db.query(
     `SELECT id_persona, email, rol, activo FROM persona WHERE id_persona=$1`,
     [uid]

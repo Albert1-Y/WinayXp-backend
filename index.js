@@ -23,6 +23,13 @@ app.use(cors({
 app.use(cookieParser(process.env.FIRMA_cokie));
 app.use(express.json());
 
+const ORIGIN = process.env.APP_ORIGIN || 'http://localhost:5173';
+app.use(cors({
+  origin: ORIGIN,
+  credentials: true,
+}));
+app.set('trust proxy', 1); // si estás detrás de docker/proxy
+
 // === Montaje de rutas ===
 app.use('/cedhi/estudiante', estudianteRouter);
 app.use('/cedhi/admin', adminRouter);

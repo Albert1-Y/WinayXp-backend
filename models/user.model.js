@@ -85,7 +85,7 @@ const verificar_idpersona = async ({id_persona}) => {
             };
     
             const { rows } = await db.query(query);
-            console.log({ rows });  
+            /*console.log({ rows }); */
             return rows;  
         } catch (error) {
             console.error('Error al obtener el ranking:', error.message);
