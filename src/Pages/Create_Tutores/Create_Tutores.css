@@ -1,0 +1,130 @@
+.create-tutores-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #EF6646;
+    margin-left: 220px; /* Ancho del navbar expandido, ajustado como en Create_Estudiante */
+    width: calc(100vw - 220px); /* Ancho calculado en base al viewport */
+    box-sizing: border-box;
+}
+
+/* Estilo cuando el navbar está colapsado */
+.create-tutores-container.navbar-collapsed {
+    margin-left: 80px; /* Ajustado para coincidir con el ancho del navbar colapsado (80px) */
+    width: calc(100vw - 80px);
+}
+
+/* Contenido principal */
+.create-tutores-content {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.create-tutores-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.create-tutores-subtitle {
+    font-size: 16px;
+    color: #111827;
+    margin-bottom: 24px;
+}
+
+/* === Contenedores de información === */
+.info-container,
+.academic-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    margin-bottom: 32px;
+    
+}
+
+/* Títulos de secciones */
+.info-title,
+.academic-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.info-subtitle,
+.academic-subtitle {
+    font-size: 14px;
+    color: black;
+    margin-bottom: 16px;
+}
+
+/* Grid para inputs */
+.info-grid,
+.academic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: auto;
+    gap: 24px;
+    margin-top: 16px;
+}
+
+/* Estilos para la selección de roles */
+.gender-group {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.gender-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Grupo de input y mensajes de error */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+/* Mensaje de error */
+.error-message {
+    color: #e53e3e;
+    font-size: 12px;
+    margin-top: 4px;
+    padding-left: 4px;
+    font-weight: 500;
+}
+
+/* Botones de acción */
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+/* Responsive para dispositivos móviles */
+@media (max-width: 768px) {
+    .info-grid,
+    .academic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+     .create-tutores-container,
+  .create-tutores-container.navbar-collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}

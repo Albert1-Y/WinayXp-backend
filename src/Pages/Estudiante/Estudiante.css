@@ -1,0 +1,187 @@
+.estudiantes-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #EF6646;
+    margin-left: 220px;  /* Ajustado para coincidir con el ancho del navbar expandido */
+    width: calc(100vw - 220px);  /* Actualizado para coincidir con el tamaño del navbar */
+    box-sizing: border-box;
+    transition: all 0.3s ease; /* Añadida transición suave */
+}
+
+/* Estilo cuando el navbar está colapsado */
+.estudiantes-container.navbar-collapsed {
+    margin-left: 80px; /* Ajustado para coincidir con el ancho del navbar colapsado (80px) */
+    width: calc(100vw - 80px);
+}
+
+.estudiantes-content {
+    background: #EF6646;
+    flex: 1;
+    padding: 20px;
+    width: 100%;
+    min-height: 100vh; /* ✅ se ajusta a pantalla pero crece si hay más contenido */
+    box-sizing: border-box;
+}
+
+.estudiantes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.estudiantes-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* contenedor de búsqueda + filtros */
+.estudiantes-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* búsqueda ocupa todo el espacio disponible */
+.estudiantes-search {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.estudiantes-search .text-field {
+    width: 100%;
+}
+
+/* filtros a la derecha */
+.filters-right {
+    display: flex;
+    gap: 12px;
+}
+
+.filters-right select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+/* tabla */
+.estudiantes-table {
+    width: 100%;
+    background: white;
+    border-radius: 10px;
+    overflow-x: scroll;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.table-header {
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #6b7280;
+    text-align: left;
+    padding: 16px;
+}
+
+.table-row {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* barra de progreso de asistencia */
+.progress-bar {
+    display: inline-block;
+    width: 100px;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.progress-bar .progress {
+    height: 100%;
+    border-radius: 4px;
+}
+
+/* botones de acción */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+}
+.input-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 5px;
+}
+
+.input-field label {
+    font-weight: 500;
+    margin-bottom: 3px;
+    color: #333;
+    text-align: left;
+}
+.action-button img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+/* Estilos para el formulario de cobrar puntos */
+.cobrar-puntos-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cobrar-puntos-container h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #111827;
+}
+
+.cobrar-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.cobrar-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.cobrar-info {
+    margin-bottom: 15px;
+}
+
+.cobrar-info p {
+    margin: 5px 0;
+    font-size: 16px;
+}
+
+.cobrar-info strong {
+    color: #111827;
+}
+@media (max-width: 768px) {
+  .estudiantes-container,
+  .estudiantes-container.navbar-collapsed {
+    margin-left: 0 !important;
+    width: 100vw !important;
+  }
+}

@@ -1,0 +1,96 @@
+.button {
+    /*width: 100%;*/
+    padding: 10px 20px;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Cambiado de flex-start a center para centrar el texto */
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.button.primary {
+    background-color: blue;
+    color: white;
+}
+
+.button.secondary {
+    background-color: gray;
+    color: white;
+}
+
+.button.danger {
+    background-color: red;
+    color: white;
+}
+
+.button.black {
+    background-color: #424F70;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.button.black:hover {
+    background-color: #424F70; /* Color plomo */
+}
+
+.button.white {
+    background-color: white;
+    color: black;
+    transition: background-color 0.3s ease;
+}
+
+.button.white:hover {
+    background-color: #9AF016; /* Color plomo */
+    color: rgb(0, 0, 0); /* Cambia el texto a blanco para mejor contraste */
+}
+
+body, html, * {
+    color-scheme: light;
+}
+
+/* Estilos para las iniciales en los botones */
+.button-text {
+    display: inline-block;
+}
+
+.button-initials {
+    display: none;
+    font-weight: bold;
+}
+
+/* Cuando los botones estén dentro de navbar colapsado, mostrar iniciales */
+.navbar-container.collapsed .button-text {
+    display: none;
+}
+
+.navbar-container.collapsed .button-initials {
+    display: inline-block;
+    font-size: 16px;
+    text-align: center;
+    width: 100%;
+}
+
+/* Ajustes para pantallas pequeñas */
+@media screen and (max-width: 576px) {
+    .navbar-container:not(.collapsed) .button {
+        padding: 10px 8px;
+    }
+
+    .navbar-container .button-text {
+        font-size: 0;
+    }
+
+    .navbar-container .button-initials {
+        display: inline-block;
+        font-size: 14px;
+        text-align: center;
+        width: 100%;
+    }
+}
+
+
