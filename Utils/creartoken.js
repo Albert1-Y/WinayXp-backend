@@ -18,6 +18,7 @@ function crearTokenCookie(res, payload) {
 
     return token
 }
+
 export const UtilsTokenAcceso = {
     crearTokenCookie
 }

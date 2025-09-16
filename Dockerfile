@@ -6,8 +6,7 @@ WORKDIR /app
 
 # Copiar manifiestos e instalar deps
 COPY package*.json ./
-RUN npm ci --omit=dev
-
+RUN npm install --package-lock-only \ && npm ci --omit=dev
 # Copiar el resto del código
 COPY . .
 
