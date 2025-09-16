@@ -1,0 +1,14 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cedhi_api
+    env_file:
+      - .env
+    # (opcional) refuerza SSL en entorno
+    environment:
+      PGSSLMODE: require
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
