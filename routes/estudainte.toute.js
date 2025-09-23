@@ -1,8 +1,8 @@
-import { Router } from "express";
-import { EstudianteController } from "../controllers/estudiante.controller.js"; 
-import {  verifyToken,verifyEstudiante } from "../middlewares/jwt.middlware.js";
+import { Router } from 'express';
+import { EstudianteController } from '../controllers/estudiante.controller.js';
+import { verifyToken, verifyEstudiante } from '../middlewares/jwt.middlware.js';
 
-const router = Router()
+const router = Router();
 
 // api/v1/users
 
@@ -22,8 +22,6 @@ const router = Router()
  *       401:
  *         description: Usuario no autenticado
  */
-router.get('/InitEstudiante', verifyToken,verifyEstudiante,EstudianteController.InitEstudiante)
-
-
+router.get('/InitEstudiante', verifyToken, verifyEstudiante, EstudianteController.InitEstudiante);
 
 export default router;

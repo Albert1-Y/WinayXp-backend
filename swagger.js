@@ -14,12 +14,12 @@ const options = {
         cookieAuth: {
           type: 'apiKey',
           in: 'cookie',
-          name: 'auth_token'
-        }
-      }
+          name: 'auth_token',
+        },
+      },
     },
   },
-  apis: ['./routes/*.js'], 
+  apis: ['./routes/*.js'],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

@@ -1,13 +1,13 @@
-import { Router } from "express";
-import { UserController } from "../controllers/user.controller.js";
+import { Router } from 'express';
+import { UserController } from '../controllers/user.controller.js';
 //import { verifyAdmin, verifyToken } from "../middlewares/jwt.middlware.js";
-import { validarLogin } from "../middlewares/validator_entrada.middlware.js";
+import { validarLogin } from '../middlewares/validator_entrada.middlware.js';
 import passport from '../middlewares/passport.js';
-import { UserModel } from "../models/user.model.js";
+import { UserModel } from '../models/user.model.js';
 import ms from 'ms';
 import jwt from 'jsonwebtoken';
 
-const router = Router()
+const router = Router();
 
 // api/v1/users
 
@@ -19,7 +19,6 @@ const router = Router()
  *   - name: Usuario
  *     description: Operaciones generales de usuario
  */
-
 
 //router.post('/register', UserController.register)
 /**
@@ -62,7 +61,7 @@ const router = Router()
  *       404:
  *         description: Usuario no encontrado
  */
-router.post('/login', validarLogin,UserController.login)
+router.post('/login', validarLogin, UserController.login);
 
 /**
  * @swagger
@@ -80,7 +79,7 @@ router.post('/login', validarLogin,UserController.login)
  *               items:
  *                 type: object
  */
-router.get('/login',UserController.ranking)
+router.get('/login', UserController.ranking);
 
 /**
  * @swagger
@@ -96,7 +95,7 @@ router.get('/login',UserController.ranking)
  *       401:
  *         description: Usuario no autenticado
  */
-router.post('/logout',UserController.logout)
+router.post('/logout', UserController.logout);
 
 /**
  * @swagger
@@ -110,7 +109,6 @@ router.post('/logout',UserController.logout)
  *         description: Redirección a Google para autenticación
  */
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
 
 /**
  * @swagger
@@ -137,7 +135,9 @@ router.get('/auth/google/callback', (req, res, next) => {
     if (err) return next(err);
 
     if (!user) {
-      const msg = encodeURIComponent(info?.message || 'Acceso denegado. Contacta al administrador.');
+      const msg = encodeURIComponent(
+        info?.message || 'Acceso denegado. Contacta al administrador.'
+      );
       return res.redirect(`${process.env.URL_FRONT}/auth/result?status=error&msg=${msg}`);
     }
 
@@ -154,7 +154,7 @@ router.get('/auth/google/callback', (req, res, next) => {
     const token = jwt.sign(
       { email: foundUser.email, rol: foundUser.rol, id_persona: foundUser.id_persona },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN },
+      { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
     res.cookie('auth_token', token, {
@@ -241,6 +241,4 @@ router.post('/user/completar-datos', async (req, res) => {
   }
 });
 
-
 export default router;
-

@@ -1,9 +1,9 @@
-import { db } from '../database/connection.database.js'
+import { db } from '../database/connection.database.js';
 
 //retorna todo los datos del estudainate para ROL estudiante
-const DatosEstudianteInit = async ({id_persona}) => {
-    const query = {
-        text: `
+const DatosEstudianteInit = async ({ id_persona }) => {
+  const query = {
+    text: `
             SELECT 
                 p.dni,
                 p.nombre_persona,
@@ -22,18 +22,18 @@ const DatosEstudianteInit = async ({id_persona}) => {
             LEFT JOIN niveles n ON e.id_nivel = n.id_nivel
             WHERE p.id_persona = $1 AND p.rol = 'estudiante'
         `,
-        values: [id_persona]
-    };
+    values: [id_persona],
+  };
 
-    try {
-        const { rows } = await db.query(query);
-        return rows[0]; 
-    } catch (error) {
-        console.error('Error al obtener datos del estudiante:', error);
-        throw error;
-    }
+  try {
+    const { rows } = await db.query(query);
+    return rows[0];
+  } catch (error) {
+    console.error('Error al obtener datos del estudiante:', error);
+    throw error;
+  }
 };
 
 export const EstudianteModel = {
-    DatosEstudianteInit
-}
+  DatosEstudianteInit,
+};
