@@ -26,6 +26,7 @@ const crearActividad = async (req, res) => {
         })
     }
 }
+
 const DeleteActividad=async(req,res)=>{
     try {
         const id_actividad = req.query.id_actividad
@@ -54,7 +55,7 @@ const DeleteActividad=async(req,res)=>{
     } 
     
     
-    }
+}
 
 const MostrarActividad=async(req,res)=>{
         try {

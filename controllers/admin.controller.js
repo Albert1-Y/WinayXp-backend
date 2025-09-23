@@ -55,12 +55,11 @@ const initAdminTutor = async (req, res) => {
         })
     }
 }
+
 const registeEstudiante = async (req, res) => {
     try {
         const { dni, email, password,nombre_persona,apellido,rol,carrera,semestre } = req.body
-        
 
-    
         const user = await UserModel.findOneByEmail(email)
         if (user) {
             return res.status(409).json({ ok: false, msg: "Email already exists" })
@@ -87,6 +86,7 @@ const registeEstudiante = async (req, res) => {
         })
     }
 }
+
 const registerMultipleEstudiantes = async (req, res) => {
     try {
         const estudiantes = req.body; // Suponemos que envías { estudiantes: [ { dni, email, ... }, {...} ] }
