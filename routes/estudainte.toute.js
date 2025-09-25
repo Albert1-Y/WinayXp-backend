@@ -23,5 +23,6 @@ const router = Router();
  *         description: Usuario no autenticado
  */
 router.get('/InitEstudiante', verifyToken, verifyEstudiante, EstudianteController.InitEstudiante);
+router.get('/TopEstudiantesCarrera', EstudianteController.TopEstudiantesCarrera);
 
 export default router;

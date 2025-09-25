@@ -92,6 +92,36 @@ const rankingtop = async () => {
     return [];
   }
 };
+
+const rankingtopByCarrera = async (nombreCarrera) => {
+  try {
+    const query = {
+      text: `
+                SELECT 
+                    p.nombre_persona AS nombre,
+                    p.apellido,
+                    c.nombre_carrera AS carrera, 
+                    e.credito_total,
+                    n.nombre_nivel 
+                FROM estudiante e
+                JOIN persona p ON e.id_persona = p.id_persona
+                JOIN carrera c ON e.id_carrera = c.id_carrera 
+                LEFT JOIN niveles n ON e.id_nivel = n.id_nivel  
+                WHERE e.activo = TRUE 
+                  AND c.nombre_carrera = $1
+                ORDER BY e.credito_total DESC
+                LIMIT 10;
+            `,
+      values: [nombreCarrera],
+    };
+
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error al obtener el ranking por carrera:', error.message);
+    return [];
+  }
+};
 const eliminarRtoken = async (id) => {
   try {
     await db.query('DELETE FROM refresh_tokens WHERE id = $1', [id]);
@@ -156,6 +186,7 @@ export const UserModel = {
   saverRefreshToken,
   verificar_idpersona,
   rankingtop,
+  rankingtopByCarrera,
   eliminarRtoken,
   createPersona,
   updatePersonaDatos,
