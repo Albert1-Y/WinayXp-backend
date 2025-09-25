@@ -6,12 +6,16 @@ import ms from 'ms';
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(req.body);
+    //console.log(req.body);
+    console.log('estamos comparando contraseñas');
     const user = await UserModel.findOneByEmail(email);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    if (!user.password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     const isMatch = await bcryptjs.compare(password, user.password);
 
     if (!isMatch) {
@@ -68,6 +72,7 @@ const login = async (req, res) => {
     });
   }
 };
+
 const ranking = async (req, res) => {
   try {
     const topR = await UserModel.rankingtop();

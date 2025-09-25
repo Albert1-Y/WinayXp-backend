@@ -23,7 +23,20 @@ const saverRefreshToken = async (id_persona, token) => {
 
 const findOneByEmail = async (email) => {
   const query = {
-    text: 'SELECT * FROM persona WHERE email = $1',
+    text: `
+      SELECT 
+        p.id_persona,
+        p.dni,
+        p.nombre_persona,
+        p.apellido,
+        p.email,
+        p.rol,
+        p.activo,
+        c.password
+      FROM persona p
+      LEFT JOIN credenciales c ON c.id_persona = p.id_persona AND c.activo = TRUE
+      WHERE p.email = $1
+    `,
     values: [email],
   };
   const { rows } = await db.query(query);

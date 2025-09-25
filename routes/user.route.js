@@ -151,6 +151,23 @@ router.get('/auth/google/callback', (req, res, next) => {
       });
     }
 
+    // Crear y guardar refresh token como en login normal
+    const refreshtoken = jwt.sign(
+      { email: foundUser.email, rol: foundUser.rol, id_persona: foundUser.id_persona },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.REFRESH_JWT_EXPIRES_IN }
+    );
+    const id_Rtoken = await UserModel.saverRefreshToken(foundUser.id_persona, refreshtoken);
+
+    res.cookie('Rtoken', id_Rtoken, {
+      httpOnly: true,
+      signed: true,
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite: 'strict',
+      maxAge: ms(process.env.COOKIE_RefreshMAXAGE),
+    });
+
+    // Crear access token y setear cookie
     const token = jwt.sign(
       { email: foundUser.email, rol: foundUser.rol, id_persona: foundUser.id_persona },
       process.env.JWT_SECRET,
@@ -165,7 +182,9 @@ router.get('/auth/google/callback', (req, res, next) => {
       maxAge: ms(process.env.COOKIE_MAXAGE),
     });
 
-    res.redirect(`${process.env.URL_FRONT}/auth/result?status=success`);
+    //res.redirect(`${process.env.URL_FRONT}/auth/result?status=success`);
+    // Si el frontend usa HashRouter, apunta a /#/auth-result (según App.jsx)
+    res.redirect(`${process.env.URL_FRONT}/#/auth-result?status=success&rol=${foundUser.rol}`);
   })(req, res, next);
 });
 
