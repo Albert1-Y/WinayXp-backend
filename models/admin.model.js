@@ -387,6 +387,201 @@ const eliminarTutor = async ({ id_persona }) => {
     return false;
   }
 };
+
+const obtenerNombreSemestre = async (id_semestre) => {
+  if (!id_semestre || Number(id_semestre) === 0) {
+    return null;
+  }
+
+  const query = {
+    text: `SELECT semestre FROM semestre WHERE id_semestre = $1`,
+    values: [id_semestre],
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows.length > 0 ? rows[0].semestre : null;
+  } catch (error) {
+    console.error('Error obteniendo nombre de semestre:', error.message);
+    return null;
+  }
+};
+
+const listarEstudiantesParaExport = async ({ idSemestre }) => {
+  const filtros = ['p.activo = TRUE'];
+  const values = [];
+
+  try {
+    const semestreNombre = await obtenerNombreSemestre(idSemestre);
+    if (semestreNombre) {
+      values.push(semestreNombre);
+      filtros.push(`e.semestre = $${values.length}`);
+    }
+
+    const query = {
+      text: `
+                SELECT
+                    p.dni,
+                    p.nombre_persona,
+                    p.apellido,
+                    p.email,
+                    COALESCE(c.nombre_carrera, 'Sin carrera') AS carrera,
+                    COALESCE(e.semestre, 'Sin semestre') AS semestre,
+                    COALESCE(n.nombre_nivel, 'Sin nivel') AS nivel,
+                    COALESCE(e.credito_total, 0) AS credito_total,
+                    COALESCE(e.cobro_credito, 0) AS cobro_credito
+                FROM estudiante e
+                INNER JOIN persona p ON e.id_persona = p.id_persona
+                LEFT JOIN carrera c ON e.id_carrera = c.id_carrera
+                LEFT JOIN niveles n ON e.id_nivel = n.id_nivel
+                WHERE ${filtros.join(' AND ')}
+                ORDER BY p.apellido, p.nombre_persona
+            `,
+      values,
+    };
+
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error obteniendo estudiantes para exportación:', error.message);
+    return [];
+  }
+};
+
+const listarActividadesParaExport = async ({ idSemestre }) => {
+  const values = [];
+  const filtros = ['a.activo = TRUE'];
+
+  if (idSemestre && Number(idSemestre) !== 0) {
+    values.push(Number(idSemestre));
+    filtros.push(`a.id_semestre = $${values.length}`);
+  }
+
+  const query = {
+    text: `
+            SELECT
+                a.id_actividad,
+                a.nombre_actividad,
+                a.fecha_inicio,
+                a.fecha_fin,
+                a.lugar,
+                a.creditos,
+                COALESCE(s.semestre, 'Sin periodo') AS semestre,
+                CONCAT_WS(' ', p.nombre_persona, p.apellido) AS creador,
+                COALESCE(COUNT(DISTINCT CASE WHEN asis.activo IS NOT FALSE THEN asis.id_estudiante END), 0) AS total_asistentes
+            FROM actividad a
+            LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
+            LEFT JOIN persona p ON a.id_creador = p.id_persona
+            LEFT JOIN asiste asis ON asis.id_actividad = a.id_actividad
+            WHERE ${filtros.join(' AND ')}
+            GROUP BY a.id_actividad, s.semestre, p.nombre_persona, p.apellido
+            ORDER BY a.fecha_inicio DESC
+        `,
+    values,
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error obteniendo actividades para exportación:', error.message);
+    return [];
+  }
+};
+
+const listarActividadesPorSemestre = async ({ idSemestre }) => {
+  const values = [];
+  const filtros = ['a.activo = TRUE'];
+
+  if (idSemestre && Number(idSemestre) > 0) {
+    values.push(Number(idSemestre));
+    filtros.push(`a.id_semestre = $${values.length}`);
+  }
+
+  const query = {
+    text: `
+            SELECT
+                a.id_actividad,
+                a.nombre_actividad,
+                a.fecha_inicio,
+                a.fecha_fin,
+                a.lugar,
+                a.creditos,
+                a.id_semestre,
+                COALESCE(s.semestre, 'Sin periodo') AS semestre,
+                COALESCE(COUNT(DISTINCT CASE WHEN asis.activo IS NOT FALSE THEN asis.id_estudiante END), 0) AS asistencia_total
+            FROM actividad a
+            LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
+            LEFT JOIN asiste asis ON asis.id_actividad = a.id_actividad
+            WHERE ${filtros.join(' AND ')}
+            GROUP BY a.id_actividad, s.semestre
+            ORDER BY a.fecha_inicio DESC
+        `,
+    values,
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error obteniendo actividades por semestre:', error.message);
+    return [];
+  }
+};
+
+const listarAsistenciaPorActividad = async ({ idActividad }) => {
+  if (!idActividad) {
+    return [];
+  }
+
+  const query = {
+    text: `
+            SELECT
+                p.dni,
+                p.nombre_persona,
+                p.apellido,
+                COALESCE(c.nombre_carrera, 'Sin carrera') AS carrera,
+                COALESCE(e.semestre, 'Sin semestre') AS semestre,
+                asis.fecha_asistencia
+            FROM asiste asis
+            INNER JOIN estudiante e ON asis.id_estudiante = e.id_estudiante
+            INNER JOIN persona p ON e.id_persona = p.id_persona
+            LEFT JOIN carrera c ON e.id_carrera = c.id_carrera
+            WHERE asis.id_actividad = $1
+              AND (asis.activo IS NULL OR asis.activo = TRUE)
+        `,
+    values: [idActividad],
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error obteniendo asistencia por actividad:', error.message);
+    return [];
+  }
+};
+
+const listarSemestres = async () => {
+  const query = {
+    text: `
+            SELECT
+                id_semestre,
+                semestre
+            FROM semestre
+            ORDER BY id_semestre DESC
+        `,
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error obteniendo semestres:', error.message);
+    return [];
+  }
+};
+
 export const AdminModel = {
   creaPersona,
   creaEstudiante,
@@ -399,4 +594,9 @@ export const AdminModel = {
   mostrarEstudiantes,
   mostrarTutores,
   eliminarTutor,
+  listarEstudiantesParaExport,
+  listarActividadesParaExport,
+  listarActividadesPorSemestre,
+  listarAsistenciaPorActividad,
+  listarSemestres,
 };

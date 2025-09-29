@@ -2,6 +2,7 @@ import 'dotenv/config';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import userRouter from './routes/user.route.js';
 
 import session from 'express-session';
@@ -32,6 +33,7 @@ app.use(
 //console.log = function () {};
 app.use(cookieParser(process.env.FIRMA_cokie));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 //app.use(express.urlencoded({ extended: true }))
 //app.use(express.static('public'))
 

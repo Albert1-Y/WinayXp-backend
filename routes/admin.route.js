@@ -301,6 +301,113 @@ router.get(
 
 /**
  * @swagger
+ * /api/admin/ActividadesPorSemestre:
+ *   get:
+ *     summary: Listar actividades filtradas por semestre
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Devuelve las actividades activas del semestre indicado o todas si no se envía parámetro.
+ *     parameters:
+ *       - in: query
+ *         name: id_semestre
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Identificador del semestre. Si se omite se retornan todas las actividades activas.
+ *     responses:
+ *       200:
+ *         description: Lista de actividades
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id_actividad:
+ *                     type: integer
+ *                   nombre_actividad:
+ *                     type: string
+ *                   fecha_inicio:
+ *                     type: string
+ *                     format: date-time
+ *                   fecha_fin:
+ *                     type: string
+ *                     format: date-time
+ *                   lugar:
+ *                     type: string
+ *                   creditos:
+ *                     type: integer
+ *                   id_semestre:
+ *                     type: integer
+ *                   semestre:
+ *                     type: string
+ *                   asistencia_total:
+ *                     type: integer
+ *       403:
+ *         description: No autorizado
+ */
+router.get(
+  '/ActividadesPorSemestre',
+  verifyToken,
+  verifyAdminTutor,
+  AdminActividadController.obtenerActividadesPorSemestre
+);
+
+/**
+ * @swagger
+ * /api/admin/AsistenciaActividad:
+ *   get:
+ *     summary: Listar asistentes de una actividad
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Devuelve la asistencia registrada para una actividad específica.
+ *     parameters:
+ *       - in: query
+ *         name: id_actividad
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Identificador de la actividad.
+ *     responses:
+ *       200:
+ *         description: Lista de asistentes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   dni:
+ *                     type: string
+ *                   nombre_persona:
+ *                     type: string
+ *                   apellido:
+ *                     type: string
+ *                   carrera:
+ *                     type: string
+ *                   semestre:
+ *                     type: string
+ *                   fecha_asistencia:
+ *                     type: string
+ *                     format: date-time
+ *       400:
+ *         description: Parámetros inválidos
+ *       403:
+ *         description: No autorizado
+ */
+router.get(
+  '/AsistenciaActividad',
+  verifyToken,
+  verifyAdminTutor,
+  AdminActividadController.obtenerAsistenciaActividad
+);
+
+/**
+ * @swagger
  * /api/admin/verifyAT:
  *   get:
  *     summary: Verificar si el usuario es tutor o administrador
@@ -388,6 +495,29 @@ router.get(
   verifyToken,
   verifyAdminTutor,
   AdminSharedController.initMostrarEstudaintes
+);
+
+router.get('/Semestres', verifyToken, verifyAdminTutor, AdminSharedController.obtenerSemestres);
+
+router.get(
+  '/exportarExcelEstudiantes',
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.exportarExcelEstudiantes
+);
+
+router.get(
+  '/exportarExcelActividades',
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.exportarExcelActividades
+);
+
+router.get(
+  '/descargar-plantilla',
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.descargarPlantillaExcel
 );
 
 /**

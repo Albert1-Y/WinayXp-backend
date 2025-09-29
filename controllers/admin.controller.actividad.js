@@ -73,8 +73,45 @@ const MostrarActividad = async (req, res) => {
   }
 };
 
+const obtenerActividadesPorSemestre = async (req, res) => {
+  try {
+    const rawIdSemestre = req.query.id_semestre;
+    const idSemestreCandidate = rawIdSemestre && rawIdSemestre !== 'todos' ? Number(rawIdSemestre) : null;
+    const idSemestre = Number.isNaN(idSemestreCandidate) ? null : idSemestreCandidate;
+
+    const actividades = await AdminModel.listarActividadesPorSemestre({ idSemestre });
+    return res.status(200).json(actividades);
+  } catch (error) {
+    console.error('Error al obtener actividades por semestre:', error);
+    return res.status(500).json({
+      msg: 'Error al obtener actividades por semestre',
+    });
+  }
+};
+
+const obtenerAsistenciaActividad = async (req, res) => {
+  try {
+    const rawIdActividad = req.query.id_actividad;
+    const idActividad = rawIdActividad ? Number(rawIdActividad) : null;
+
+    if (!idActividad || Number.isNaN(idActividad)) {
+      return res.status(400).json({ msg: 'id_actividad inválido' });
+    }
+
+    const asistentes = await AdminModel.listarAsistenciaPorActividad({ idActividad });
+    return res.status(200).json(asistentes);
+  } catch (error) {
+    console.error('Error al obtener asistencia de la actividad:', error);
+    return res.status(500).json({
+      msg: 'Error al obtener asistencia de la actividad',
+    });
+  }
+};
+
 export const AdminActividadController = {
   crearActividad,
   DeleteActividad,
   MostrarActividad,
+  obtenerActividadesPorSemestre,
+  obtenerAsistenciaActividad,
 };

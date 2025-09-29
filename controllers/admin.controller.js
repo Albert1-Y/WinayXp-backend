@@ -1,6 +1,7 @@
 import { AdminModel } from '../models/admin.model.js';
 import { UserModel } from '../models/user.model.js';
 import { ModelAdminTutor } from '../models/admin.tutor.model.js';
+import ExcelJS from 'exceljs';
 import bcryptjs from 'bcryptjs';
 
 const register_Admin_tutor = async (req, res) => {
@@ -246,6 +247,169 @@ const DeleteTutor = async (req, res) => {
     });
   }
 };
+
+const exportarExcelEstudiantes = async (req, res) => {
+  try {
+    const idSemestre = Number(req.query.id_semestre || 0);
+    const estudiantes = await AdminModel.listarEstudiantesParaExport({ idSemestre });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Wiñay XP';
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet('Estudiantes');
+
+    worksheet.columns = [
+      { header: 'DNI', key: 'dni', width: 15 },
+      { header: 'Nombre', key: 'nombre_persona', width: 20 },
+      { header: 'Apellido', key: 'apellido', width: 20 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Carrera', key: 'carrera', width: 25 },
+      { header: 'Semestre', key: 'semestre', width: 15 },
+      { header: 'Nivel', key: 'nivel', width: 20 },
+      { header: 'Créditos Totales', key: 'credito_total', width: 18 },
+      { header: 'Créditos Disponibles', key: 'cobro_credito', width: 20 },
+    ];
+
+    estudiantes.forEach((est) => {
+      worksheet.addRow({
+        dni: est.dni,
+        nombre_persona: est.nombre_persona,
+        apellido: est.apellido,
+        email: est.email,
+        carrera: est.carrera,
+        semestre: est.semestre,
+        nivel: est.nivel,
+        credito_total: est.credito_total,
+        cobro_credito: est.cobro_credito,
+      });
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    const timestamp = new Date().toISOString().split('T')[0];
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="estudiantes_${timestamp}.xlsx"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error al exportar estudiantes:', error);
+    return res.status(500).json({ msg: 'Error al generar el archivo de estudiantes' });
+  }
+};
+
+const exportarExcelActividades = async (req, res) => {
+  try {
+    const idSemestre = Number(req.query.id_semestre || 0);
+    const actividades = await AdminModel.listarActividadesParaExport({ idSemestre });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Wiñay XP';
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet('Actividades');
+
+    worksheet.columns = [
+      { header: 'Nombre', key: 'nombre_actividad', width: 30 },
+      { header: 'Fecha Inicio', key: 'fecha_inicio', width: 18 },
+      { header: 'Fecha Fin', key: 'fecha_fin', width: 18 },
+      { header: 'Lugar', key: 'lugar', width: 25 },
+      { header: 'Créditos', key: 'creditos', width: 12 },
+      { header: 'Semestre', key: 'semestre', width: 15 },
+      { header: 'Creador', key: 'creador', width: 25 },
+      { header: 'Total Asistentes', key: 'total_asistentes', width: 18 },
+    ];
+
+    actividades.forEach((actividad) => {
+      worksheet.addRow({
+        nombre_actividad: actividad.nombre_actividad,
+        fecha_inicio: actividad.fecha_inicio,
+        fecha_fin: actividad.fecha_fin,
+        lugar: actividad.lugar,
+        creditos: actividad.creditos,
+        semestre: actividad.semestre,
+        creador: actividad.creador,
+        total_asistentes: actividad.total_asistentes,
+      });
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    const timestamp = new Date().toISOString().split('T')[0];
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="actividades_${timestamp}.xlsx"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error al exportar actividades:', error);
+    return res.status(500).json({ msg: 'Error al generar el archivo de actividades' });
+  }
+};
+
+const obtenerSemestres = async (req, res) => {
+  try {
+    const semestres = await AdminModel.listarSemestres();
+    return res.status(200).json(semestres);
+  } catch (error) {
+    console.error('Error al obtener semestres:', error);
+    return res.status(500).json({ msg: 'Error al obtener la lista de semestres' });
+  }
+};
+
+const descargarPlantillaExcel = async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Wiñay XP';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Plantilla Actividades');
+
+    worksheet.columns = [
+      { header: 'Nombre Actividad', key: 'nombre_actividad', width: 30 },
+      { header: 'Fecha Inicio (YYYY-MM-DD)', key: 'fecha_inicio', width: 22 },
+      { header: 'Fecha Fin (YYYY-MM-DD)', key: 'fecha_fin', width: 22 },
+      { header: 'Lugar', key: 'lugar', width: 25 },
+      { header: 'Créditos', key: 'creditos', width: 12 },
+      { header: 'Semestre', key: 'semestre', width: 15 },
+    ];
+
+    worksheet.addRow({
+      nombre_actividad: 'Taller de ejemplo',
+      fecha_inicio: '2024-03-01',
+      fecha_fin: '2024-03-01',
+      lugar: 'Auditorio Central',
+      creditos: 5,
+      semestre: '2024-I',
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="plantilla_actividades.xlsx"');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error al generar plantilla:', error);
+    return res.status(500).json({ msg: 'Error al generar la plantilla Excel' });
+  }
+};
+
 export const AdminController = {
   register_Admin_tutor,
   MostrarTutor,
@@ -259,4 +423,8 @@ export const AdminSharedController = {
   initMostrarEstudaintes,
   initAdminTutor,
   registerMultipleEstudiantes,
+  exportarExcelEstudiantes,
+  exportarExcelActividades,
+  obtenerSemestres,
+  descargarPlantillaExcel,
 };

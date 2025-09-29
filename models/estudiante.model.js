@@ -34,6 +34,40 @@ const DatosEstudianteInit = async ({ id_persona }) => {
   }
 };
 
+const listarActividadesAsistidas = async ({ id_persona }) => {
+  const query = {
+    text: `
+            SELECT
+                a.id_actividad,
+                a.nombre_actividad,
+                a.fecha_inicio,
+                a.fecha_fin,
+                a.lugar,
+                a.creditos,
+                COALESCE(s.semestre, 'Sin periodo') AS semestre,
+                asis.fecha_asistencia
+            FROM asiste asis
+            INNER JOIN estudiante e ON asis.id_estudiante = e.id_estudiante
+            INNER JOIN actividad a ON asis.id_actividad = a.id_actividad
+            LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
+            WHERE e.id_persona = $1
+              AND a.activo = TRUE
+              AND (asis.activo IS NULL OR asis.activo = TRUE)
+            ORDER BY a.fecha_inicio DESC
+        `,
+    values: [id_persona],
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error('Error al obtener actividades asistidas:', error);
+    return [];
+  }
+};
+
 export const EstudianteModel = {
   DatosEstudianteInit,
+  listarActividadesAsistidas,
 };

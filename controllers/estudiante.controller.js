@@ -31,4 +31,14 @@ export const EstudianteController = {
       return res.status(500).json({ msg: 'Error server' });
     }
   },
+  getActividadesAsistidas: async (req, res) => {
+    try {
+      const id_persona = req.id_persona;
+      const actividades = await EstudianteModel.listarActividadesAsistidas({ id_persona });
+      return res.status(200).json(actividades);
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ msg: 'Error al obtener actividades asistidas' });
+    }
+  },
 };
