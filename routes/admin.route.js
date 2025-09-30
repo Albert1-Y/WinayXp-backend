@@ -188,11 +188,17 @@ router.post(
  *     description: Solo accesible para usuarios con rol tutor o administrador.
  *     parameters:
  *       - in: query
+ *         name: dni
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: DNI del estudiante a consultar
+ *       - in: query
  *         name: id_persona
  *         schema:
  *           type: integer
- *         required: true
- *         description: ID del estudiante
+ *         required: false
+ *         description: Alternativa para buscar por identificador interno del estudiante
  *     responses:
  *       200:
  *         description: Datos del estudiante
@@ -301,6 +307,54 @@ router.get(
 
 /**
  * @swagger
+ * /api/admin/ActualizarActividad:
+ *   put:
+ *     summary: Actualizar datos de una actividad existente
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_actividad:
+ *                 type: integer
+ *               nombre_actividad:
+ *                 type: string
+ *               lugar:
+ *                 type: string
+ *               creditos:
+ *                 type: number
+ *               semestre:
+ *                 type: string
+ *               fecha_inicio:
+ *                 type: string
+ *                 format: date-time
+ *               fecha_fin:
+ *                 type: string
+ *                 format: date-time
+ *             required:
+ *               - id_actividad
+ *     responses:
+ *       200:
+ *         description: Actividad actualizada correctamente
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Actividad no encontrada
+ */
+router.put(
+  '/ActualizarActividad',
+  verifyToken,
+  verifyAdminTutor,
+  AdminActividadController.actualizarActividad
+);
+
+/**
+ * @swagger
  * /api/admin/ActividadesPorSemestre:
  *   get:
  *     summary: Listar actividades filtradas por semestre
@@ -381,6 +435,8 @@ router.get(
  *               items:
  *                 type: object
  *                 properties:
+ *                   id_persona:
+ *                     type: integer
  *                   dni:
  *                     type: string
  *                   nombre_persona:
@@ -391,9 +447,13 @@ router.get(
  *                     type: string
  *                   semestre:
  *                     type: string
+ *                   id_estudiante:
+ *                     type: integer
  *                   fecha_asistencia:
  *                     type: string
  *                     format: date-time
+ *                   activo:
+ *                     type: boolean
  *       400:
  *         description: Parámetros inválidos
  *       403:
@@ -404,6 +464,64 @@ router.get(
   verifyToken,
   verifyAdminTutor,
   AdminActividadController.obtenerAsistenciaActividad
+);
+
+/**
+ * @swagger
+ * /api/admin/AsistenciaEstudiante:
+ *   put:
+ *     summary: Registrar o actualizar la asistencia de un estudiante en una actividad
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_actividad:
+ *                 type: integer
+ *               estado:
+ *                 type: boolean
+ *               id_estudiante:
+ *                 type: integer
+ *               id_persona:
+ *                 type: integer
+ *             required:
+ *               - id_actividad
+ *               - estado
+ *             description: Se debe enviar id_estudiante o id_persona para identificar al alumno.
+ *     responses:
+ *       200:
+ *         description: Estado de asistencia actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 asistencia:
+ *                   type: object
+ *                 totales:
+ *                   type: object
+ *                   properties:
+ *                     credito_total:
+ *                       type: number
+ *                     cobro_credito:
+ *                       type: number
+ *       400:
+ *         description: Parámetros inválidos
+ *       404:
+ *         description: Estudiante no encontrado
+ */
+router.put(
+  '/AsistenciaEstudiante',
+  verifyToken,
+  verifyAdminTutor,
+  AdminActividadController.actualizarAsistenciaEstudiante
 );
 
 /**

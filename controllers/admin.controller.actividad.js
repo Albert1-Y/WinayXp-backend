@@ -108,10 +108,121 @@ const obtenerAsistenciaActividad = async (req, res) => {
   }
 };
 
+const actualizarActividad = async (req, res) => {
+  try {
+    const {
+      id_actividad,
+      nombre_actividad,
+      lugar,
+      creditos,
+      semestre,
+      fecha_inicio,
+      fecha_fin,
+    } = req.body || {};
+
+    const idActividad = Number(id_actividad);
+
+    if (!idActividad || Number.isNaN(idActividad)) {
+      return res.status(400).json({ msg: 'id_actividad es requerido' });
+    }
+
+    const existe = await AdminModel.actividadExiste({ id_actividad: idActividad });
+    if (!existe) {
+      return res.status(404).json({ msg: 'Actividad no encontrada' });
+    }
+
+    let creditosNormalizados;
+    if (creditos !== undefined) {
+      if (creditos === null || creditos === '') {
+        creditosNormalizados = null;
+      } else {
+        creditosNormalizados = Number(creditos);
+        if (Number.isNaN(creditosNormalizados)) {
+          return res.status(400).json({ msg: 'Créditos inválidos' });
+        }
+      }
+    }
+
+    const actividadActualizada = await AdminModel.actualizarActividad({
+      id_actividad: idActividad,
+      nombre_actividad,
+      lugar,
+      creditos: creditos !== undefined ? creditosNormalizados : undefined,
+      semestre,
+      fecha_inicio,
+      fecha_fin,
+    });
+
+    return res.status(200).json({ ok: true, actividad: actividadActualizada });
+  } catch (error) {
+    console.error('Error al actualizar actividad:', error);
+    return res.status(500).json({ msg: 'Error al actualizar actividad' });
+  }
+};
+
+const actualizarAsistenciaEstudiante = async (req, res) => {
+  try {
+    const { id_persona, id_estudiante, id_actividad, estado } = req.body || {};
+
+    if (!id_actividad || Number.isNaN(Number(id_actividad))) {
+      return res.status(400).json({ msg: 'id_actividad es requerido' });
+    }
+
+    const estadoNormalizado =
+      typeof estado === 'boolean' ? estado : estado === 'true' ? true : estado === 'false' ? false : null;
+
+    if (estadoNormalizado === null) {
+      return res.status(400).json({ msg: 'estado debe ser booleano' });
+    }
+
+    let estudianteId = Number(id_estudiante) || null;
+
+    if (!estudianteId && id_persona) {
+      const estudiante = await AdminModel.obtenerEstudiantePorIdPersona({ id_persona });
+      if (!estudiante) {
+        return res.status(404).json({ msg: 'Estudiante no encontrado' });
+      }
+      estudianteId = estudiante.id_estudiante;
+    }
+
+    if (!estudianteId) {
+      return res.status(400).json({ msg: 'Debe proporcionar id_estudiante o id_persona' });
+    }
+
+    const idActividad = Number(id_actividad);
+
+    const { asistencia, totales } = await AdminModel.guardarAsistenciaEstudiante({
+      id_estudiante: estudianteId,
+      id_actividad: idActividad,
+      estado: estadoNormalizado,
+    });
+
+    if (!asistencia) {
+      return res.status(200).json({
+        ok: true,
+        totales,
+        msg: estadoNormalizado
+          ? 'No se pudo registrar la asistencia'
+          : 'Asistencia desactivada',
+      });
+    }
+
+    return res.status(200).json({ ok: true, asistencia, totales });
+  } catch (error) {
+    console.error('Error al actualizar asistencia:', error);
+    if (error.message === 'ACTIVIDAD_NO_ENCONTRADA') {
+      return res.status(404).json({ msg: 'Actividad no encontrada' });
+    }
+    return res.status(500).json({ msg: 'Error al actualizar asistencia' });
+  }
+};
+
 export const AdminActividadController = {
   crearActividad,
   DeleteActividad,
   MostrarActividad,
+  actualizarActividad,
   obtenerActividadesPorSemestre,
   obtenerAsistenciaActividad,
+  actualizarAsistenciaEstudiante,
 };

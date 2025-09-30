@@ -157,8 +157,13 @@ const registerMultipleEstudiantes = async (req, res) => {
 const DatosEstudiante = async (req, res) => {
   try {
     const dni = req.query.dni;
+    const id_persona = req.query.id_persona;
 
-    const estudiante = await AdminModel.dataAlumno({ dni: dni });
+    if (!dni && !id_persona) {
+      return res.status(400).json({ msg: 'Se requiere dni o id_persona' });
+    }
+
+    const estudiante = await AdminModel.dataAlumno({ dni, id_persona });
     //console.log(estudiante)
     if (!estudiante) {
       return res.status(404).json({ msg: 'Estudiante no encontrado' });
