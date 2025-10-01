@@ -1,4 +1,5 @@
 import { db } from '../database/connection.database.js';
+import { NivelModel } from './nivel.model.js';
 
 const creaPersona = async ({ dni, email, password, nombre_persona, apellido, rol }) => {
   const query = {
@@ -754,6 +755,21 @@ const guardarAsistenciaEstudiante = async ({ id_estudiante, id_actividad, estado
   await db.query('BEGIN');
 
   try {
+    const estudianteResult = await db.query(
+      `SELECT id_nivel, COALESCE(ultimo_nivel_visto, 0) AS ultimo_nivel_visto
+         FROM estudiante
+         WHERE id_estudiante = $1
+         FOR UPDATE`,
+      [id_estudiante]
+    );
+
+    if (estudianteResult.rows.length === 0) {
+      throw new Error('ESTUDIANTE_NO_ENCONTRADO');
+    }
+
+    const { id_nivel: idNivelAnterior, ultimo_nivel_visto: ultimoNivelVistoRaw } = estudianteResult.rows[0];
+    const ultimoNivelVisto = Number(ultimoNivelVistoRaw || 0);
+
     const actividadResultado = await db.query(
       'SELECT creditos FROM actividad WHERE id_actividad = $1',
       [id_actividad]
@@ -798,22 +814,17 @@ const guardarAsistenciaEstudiante = async ({ id_estudiante, id_actividad, estado
       if (estadoPrevio !== estado) {
         deltaCreditos = estado ? creditosActividad : -creditosActividad;
       }
-    } else {
-      if (estado) {
-        const insertResult = await db.query(
-          `
-              INSERT INTO asiste (id_estudiante, id_actividad, fecha_asistencia, activo)
-              VALUES ($1, $2, NOW(), TRUE)
-              RETURNING id_estudiante, id_actividad, fecha_asistencia, activo
-          `,
-          [id_estudiante, id_actividad]
-        );
-        asistenciaRow = insertResult.rows[0] || null;
-        deltaCreditos = creditosActividad;
-      } else {
-        // No había registro y se solicita desactivar: no se hace nada.
-        asistenciaRow = null;
-      }
+    } else if (estado) {
+      const insertResult = await db.query(
+        `
+            INSERT INTO asiste (id_estudiante, id_actividad, fecha_asistencia, activo)
+            VALUES ($1, $2, NOW(), TRUE)
+            RETURNING id_estudiante, id_actividad, fecha_asistencia, activo
+        `,
+        [id_estudiante, id_actividad]
+      );
+      asistenciaRow = insertResult.rows[0] || null;
+      deltaCreditos = creditosActividad;
     }
 
     if (deltaCreditos !== 0) {
@@ -834,11 +845,32 @@ const guardarAsistenciaEstudiante = async ({ id_estudiante, id_actividad, estado
       [id_estudiante]
     );
 
+    const totales = totalesResult.rows[0] || { credito_total: 0, cobro_credito: 0 };
+    const creditosTotales = Number(totales.credito_total || 0);
+
+    const nivelActual = await NivelModel.obtenerNivelPorCreditos({ creditos: creditosTotales });
+    if (nivelActual && nivelActual.id_nivel && nivelActual.id_nivel !== Number(idNivelAnterior || 0)) {
+      await db.query('UPDATE estudiante SET id_nivel = $1 WHERE id_estudiante = $2', [
+        nivelActual.id_nivel,
+        id_estudiante,
+      ]);
+    }
+
+    let nivelesPendientes = [];
+    if (nivelActual && nivelActual.id_nivel > ultimoNivelVisto) {
+      nivelesPendientes = await NivelModel.listarNivelesPendientes({
+        desde: ultimoNivelVisto,
+        hasta: nivelActual.id_nivel,
+      });
+    }
+
     await db.query('COMMIT');
 
     return {
       asistencia: asistenciaRow,
-      totales: totalesResult.rows[0] || null,
+      totales,
+      nivel: nivelActual,
+      nivelesPendientes,
     };
   } catch (error) {
     await db.query('ROLLBACK');

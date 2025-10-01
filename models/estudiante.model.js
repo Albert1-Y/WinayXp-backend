@@ -13,9 +13,14 @@ const DatosEstudianteInit = async ({ id_persona }) => {
                 e.semestre,
                 e.credito_total,
                 e.cobro_credito,
+                e.id_nivel,
+                COALESCE(e.ultimo_nivel_visto, 0) AS ultimo_nivel_visto,
                 c.nombre_carrera,
+                n.id_nivel AS nivel_id,
                 n.nombre_nivel,
-                n.nombre_imagen
+                n.nombre_imagen,
+                n.rango_inicio,
+                n.rango_fin
             FROM persona p
             JOIN estudiante e ON p.id_persona = e.id_persona
             LEFT JOIN carrera c ON e.id_carrera = c.id_carrera
@@ -67,7 +72,52 @@ const listarActividadesAsistidas = async ({ id_persona }) => {
   }
 };
 
+const marcarNivelVisto = async ({ id_estudiante, id_persona, id_nivel }) => {
+  const filtros = [];
+  const valores = [];
+
+  if (id_estudiante) {
+    valores.push(id_estudiante);
+    filtros.push(`id_estudiante = $${valores.length}`);
+  } else if (id_persona) {
+    valores.push(id_persona);
+    filtros.push(`id_persona = $${valores.length}`);
+  } else {
+    throw new Error('IDENTIFICADOR_ESTUDIANTE_REQUERIDO');
+  }
+
+  if (!id_nivel || Number.isNaN(Number(id_nivel))) {
+    throw new Error('NIVEL_INVALIDO');
+  }
+
+  valores.push(Number(id_nivel));
+  const nivelIndex = valores.length;
+
+  if (filtros.length === 0) {
+    throw new Error('IDENTIFICADOR_ESTUDIANTE_REQUERIDO');
+  }
+
+  const query = {
+    text: `
+            UPDATE estudiante
+            SET ultimo_nivel_visto = GREATEST(COALESCE(ultimo_nivel_visto, 0), $${nivelIndex})
+            WHERE ${filtros.join(' AND ')}
+            RETURNING ultimo_nivel_visto
+        `,
+    values: valores,
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows[0]?.ultimo_nivel_visto || null;
+  } catch (error) {
+    console.error('Error al actualizar último nivel visto:', error.message);
+    throw error;
+  }
+};
+
 export const EstudianteModel = {
   DatosEstudianteInit,
   listarActividadesAsistidas,
+  marcarNivelVisto,
 };

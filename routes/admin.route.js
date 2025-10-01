@@ -512,6 +512,23 @@ router.get(
  *                       type: number
  *                     cobro_credito:
  *                       type: number
+ *                 nivel:
+ *                   type: object
+ *                   properties:
+ *                     id_nivel:
+ *                       type: integer
+ *                     nombre_nivel:
+ *                       type: string
+ *                     rango_inicio:
+ *                       type: integer
+ *                     rango_fin:
+ *                       type: integer
+ *                     nombre_imagen:
+ *                       type: string
+ *                 niveles_pendientes:
+ *                   type: array
+ *                   items:
+ *                     type: object
  *       400:
  *         description: Parámetros inválidos
  *       404:

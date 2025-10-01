@@ -191,7 +191,7 @@ const actualizarAsistenciaEstudiante = async (req, res) => {
 
     const idActividad = Number(id_actividad);
 
-    const { asistencia, totales } = await AdminModel.guardarAsistenciaEstudiante({
+    const { asistencia, totales, nivel, nivelesPendientes } = await AdminModel.guardarAsistenciaEstudiante({
       id_estudiante: estudianteId,
       id_actividad: idActividad,
       estado: estadoNormalizado,
@@ -201,17 +201,28 @@ const actualizarAsistenciaEstudiante = async (req, res) => {
       return res.status(200).json({
         ok: true,
         totales,
+        nivel,
+        niveles_pendientes: nivelesPendientes,
         msg: estadoNormalizado
           ? 'No se pudo registrar la asistencia'
           : 'Asistencia desactivada',
       });
     }
 
-    return res.status(200).json({ ok: true, asistencia, totales });
+    return res.status(200).json({
+      ok: true,
+      asistencia,
+      totales,
+      nivel,
+      niveles_pendientes: nivelesPendientes,
+    });
   } catch (error) {
     console.error('Error al actualizar asistencia:', error);
     if (error.message === 'ACTIVIDAD_NO_ENCONTRADA') {
       return res.status(404).json({ msg: 'Actividad no encontrada' });
+    }
+    if (error.message === 'ESTUDIANTE_NO_ENCONTRADO') {
+      return res.status(404).json({ msg: 'Estudiante no encontrado' });
     }
     return res.status(500).json({ msg: 'Error al actualizar asistencia' });
   }

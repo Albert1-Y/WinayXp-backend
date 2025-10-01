@@ -73,4 +73,37 @@ router.get(
   EstudianteController.getActividadesAsistidas
 );
 
+/**
+ * @swagger
+ * /api/estudiante/confirmarNivel:
+ *   put:
+ *     summary: Marca los niveles alcanzados como vistos por el estudiante autenticado
+ *     tags: [Estudiante]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_nivel:
+ *                 type: integer
+ *                 description: Último nivel cuya animación ya visualizó el estudiante.
+ *             required:
+ *               - id_nivel
+ *     responses:
+ *       200:
+ *         description: Confirmación registrada correctamente
+ *       400:
+ *         description: Parámetros inválidos
+ */
+router.put(
+  '/confirmarNivel',
+  verifyToken,
+  verifyEstudiante,
+  EstudianteController.confirmarNivelesVistos
+);
+
 export default router;
