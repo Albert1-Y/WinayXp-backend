@@ -15,6 +15,8 @@ import adminRouter from './routes/admin.route.js';
 import estudianteRouter from './routes/estudainte.toute.js';
 const app = express();
 
+app.set('trust proxy', 1); // trust Render/Heroku style reverse proxies for secure cookies
+
 app.use(
   session({
     secret: 'Cedhi2025firma32961', // Usa tu FIRMA_cokie o una clave segura

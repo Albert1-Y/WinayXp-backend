@@ -9,6 +9,24 @@ import jwt from 'jsonwebtoken';
 
 const router = Router();
 
+const allowedSameSite = new Set(['strict', 'lax', 'none']);
+const buildCookieOptions = (maxAge) => {
+  let sameSite = (process.env.COOKIE_SAMESITE || 'strict').toLowerCase();
+  if (!allowedSameSite.has(sameSite)) {
+    sameSite = 'strict';
+  }
+  const secureFromEnv = process.env.COOKIE_SECURE === 'true';
+  const secure = sameSite === 'none' ? true : secureFromEnv;
+
+  return {
+    httpOnly: true,
+    signed: true,
+    secure,
+    sameSite,
+    maxAge,
+  };
+};
+
 // api/v1/users
 
 /**
@@ -159,13 +177,7 @@ router.get('/auth/google/callback', (req, res, next) => {
     );
     const id_Rtoken = await UserModel.saverRefreshToken(foundUser.id_persona, refreshtoken);
 
-    res.cookie('Rtoken', id_Rtoken, {
-      httpOnly: true,
-      signed: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'strict',
-      maxAge: ms(process.env.COOKIE_RefreshMAXAGE),
-    });
+    res.cookie('Rtoken', id_Rtoken, buildCookieOptions(ms(process.env.COOKIE_RefreshMAXAGE)));
 
     // Crear access token y setear cookie
     const token = jwt.sign(
@@ -174,13 +186,7 @@ router.get('/auth/google/callback', (req, res, next) => {
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
-    res.cookie('auth_token', token, {
-      httpOnly: true,
-      signed: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'strict',
-      maxAge: ms(process.env.COOKIE_MAXAGE),
-    });
+    res.cookie('auth_token', token, buildCookieOptions(ms(process.env.COOKIE_MAXAGE)));
 
     //res.redirect(`${process.env.URL_FRONT}/auth/result?status=success`);
     // Si el frontend usa HashRouter, apunta a /#/auth-result (según App.jsx)

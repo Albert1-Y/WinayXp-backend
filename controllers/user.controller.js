@@ -3,6 +3,24 @@ import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/user.model.js';
 import ms from 'ms';
 
+const allowedSameSite = new Set(['strict', 'lax', 'none']);
+const buildCookieOptions = (maxAge) => {
+  let sameSite = (process.env.COOKIE_SAMESITE || 'strict').toLowerCase();
+  if (!allowedSameSite.has(sameSite)) {
+    sameSite = 'strict';
+  }
+  const secureFromEnv = process.env.COOKIE_SECURE === 'true';
+  const secure = sameSite === 'none' ? true : secureFromEnv;
+
+  return {
+    httpOnly: true,
+    signed: true,
+    secure,
+    sameSite,
+    maxAge,
+  };
+};
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -35,13 +53,7 @@ const login = async (req, res) => {
 
     // cookie gurda la id de resfresh token
     const RmaxAge = ms(process.env.COOKIE_RefreshMAXAGE);
-    res.cookie('Rtoken', id_Rtoken, {
-      httpOnly: true,
-      signed: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'strict',
-      maxAge: RmaxAge,
-    });
+    res.cookie('Rtoken', id_Rtoken, buildCookieOptions(RmaxAge));
 
     //crear acces token
     const token = jwt.sign(
@@ -53,13 +65,7 @@ const login = async (req, res) => {
     );
     const maxAge = ms(process.env.COOKIE_MAXAGE);
 
-    res.cookie('auth_token', token, {
-      httpOnly: true,
-      signed: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'strict',
-      maxAge: maxAge,
-    });
+    res.cookie('auth_token', token, buildCookieOptions(maxAge));
     return res.status(200).json({
       ok: true,
       rol: user.rol,
