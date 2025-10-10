@@ -7,7 +7,9 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: '/api/auth/google/callback',
+      callbackURL:
+        process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback',
+      proxy: true, // honor X-Forwarded-* headers when behind a reverse proxy (e.g. Render)
     },
     async (accessToken, refreshToken, profile, done) => {
       const email = profile.emails[0].value;
