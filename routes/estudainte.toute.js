@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { EstudianteController } from '../controllers/estudiante.controller.js';
-import { verifyToken, verifyEstudiante } from '../middlewares/jwt.middlware.js';
+import { Router } from "express";
+import { EstudianteController } from "../controllers/estudiante.controller.js";
+import { verifyToken, verifyEstudiante } from "../middlewares/jwt.middlware.js";
 
 const router = Router();
 
@@ -22,8 +22,16 @@ const router = Router();
  *       401:
  *         description: Usuario no autenticado
  */
-router.get('/InitEstudiante', verifyToken, verifyEstudiante, EstudianteController.InitEstudiante);
-router.get('/TopEstudiantesCarrera', EstudianteController.TopEstudiantesCarrera);
+router.get(
+  "/InitEstudiante",
+  verifyToken,
+  verifyEstudiante,
+  EstudianteController.InitEstudiante,
+);
+router.get(
+  "/TopEstudiantesCarrera",
+  EstudianteController.TopEstudiantesCarrera,
+);
 /**
  * @swagger
  * /api/estudiante/getActividadesAsistidas:
@@ -67,10 +75,10 @@ router.get('/TopEstudiantesCarrera', EstudianteController.TopEstudiantesCarrera)
  *         description: No autorizado
  */
 router.get(
-  '/getActividadesAsistidas',
+  "/getActividadesAsistidas",
   verifyToken,
   verifyEstudiante,
-  EstudianteController.getActividadesAsistidas
+  EstudianteController.getActividadesAsistidas,
 );
 
 /**
@@ -100,10 +108,10 @@ router.get(
  *         description: Parámetros inválidos
  */
 router.put(
-  '/confirmarNivel',
+  "/confirmarNivel",
   verifyToken,
   verifyEstudiante,
-  EstudianteController.confirmarNivelesVistos
+  EstudianteController.confirmarNivelesVistos,
 );
 
 export default router;

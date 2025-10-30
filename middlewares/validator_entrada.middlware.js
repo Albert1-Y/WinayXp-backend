@@ -1,9 +1,9 @@
-import { body, validationResult } from 'express-validator';
+import { body, validationResult } from "express-validator";
 
 export const validarLogin = [
-  body('email').isEmail().withMessage('Email is invalid'),
+  body("email").isEmail().withMessage("Email is invalid"),
 
-  body('password').notEmpty().withMessage('Password is required'),
+  body("password").notEmpty().withMessage("Password is required"),
 
   (req, res, next) => {
     const errors = validationResult(req);

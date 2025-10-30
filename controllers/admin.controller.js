@@ -1,8 +1,8 @@
-import { AdminModel } from '../models/admin.model.js';
-import { UserModel } from '../models/user.model.js';
-import { ModelAdminTutor } from '../models/admin.tutor.model.js';
-import ExcelJS from 'exceljs';
-import bcryptjs from 'bcryptjs';
+import { AdminModel } from "../models/admin.model.js";
+import { UserModel } from "../models/user.model.js";
+import { ModelAdminTutor } from "../models/admin.tutor.model.js";
+import ExcelJS from "exceljs";
+import bcryptjs from "bcryptjs";
 
 const register_Admin_tutor = async (req, res) => {
   try {
@@ -11,7 +11,7 @@ const register_Admin_tutor = async (req, res) => {
 
     const user = await UserModel.findOneByEmail(email);
     if (user) {
-      return res.status(409).json({ ok: false, msg: 'Email already exists' });
+      return res.status(409).json({ ok: false, msg: "Email already exists" });
     }
 
     const salt = await bcryptjs.genSalt(10);
@@ -36,7 +36,7 @@ const register_Admin_tutor = async (req, res) => {
     console.log(error);
     return res.status(500).json({
       ok: false,
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -53,18 +53,27 @@ const initAdminTutor = async (req, res) => {
     console.log(error);
     return res.status(500).json({
       ok: false,
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
 
 const registeEstudiante = async (req, res) => {
   try {
-    const { dni, email, password, nombre_persona, apellido, rol, carrera, semestre } = req.body;
+    const {
+      dni,
+      email,
+      password,
+      nombre_persona,
+      apellido,
+      rol,
+      carrera,
+      semestre,
+    } = req.body;
 
     const user = await UserModel.findOneByEmail(email);
     if (user) {
-      return res.status(409).json({ ok: false, msg: 'Email already exists' });
+      return res.status(409).json({ ok: false, msg: "Email already exists" });
     }
 
     const salt = await bcryptjs.genSalt(10);
@@ -93,7 +102,7 @@ const registeEstudiante = async (req, res) => {
     console.log(error);
     return res.status(500).json({
       ok: false,
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -103,18 +112,33 @@ const registerMultipleEstudiantes = async (req, res) => {
     const estudiantes = req.body; // Suponemos que envías { estudiantes: [ { dni, email, ... }, {...} ] }
 
     if (!Array.isArray(estudiantes)) {
-      return res.status(400).json({ ok: false, msg: 'Se esperaba una lista de estudiantes' });
+      return res
+        .status(400)
+        .json({ ok: false, msg: "Se esperaba una lista de estudiantes" });
     }
 
     const resultados = [];
 
     for (const est of estudiantes) {
-      const { dni, email, password, nombre_persona, apellido, rol, carrera, semestre } = est;
+      const {
+        dni,
+        email,
+        password,
+        nombre_persona,
+        apellido,
+        rol,
+        carrera,
+        semestre,
+      } = est;
 
       // Verificar si el email ya existe
       const existingUser = await UserModel.findOneByEmail(email);
       if (existingUser) {
-        resultados.push({ email, status: 'duplicado', msg: 'Email ya registrado' });
+        resultados.push({
+          email,
+          status: "duplicado",
+          msg: "Email ya registrado",
+        });
         continue;
       }
 
@@ -135,9 +159,17 @@ const registerMultipleEstudiantes = async (req, res) => {
           semestre,
         });
 
-        resultados.push({ email, status: 'registrado', ID: newUser.id_estudiante });
+        resultados.push({
+          email,
+          status: "registrado",
+          ID: newUser.id_estudiante,
+        });
       } catch (err) {
-        resultados.push({ email, status: 'error', msg: 'Error al crear estudiante' });
+        resultados.push({
+          email,
+          status: "error",
+          msg: "Error al crear estudiante",
+        });
       }
     }
 
@@ -149,7 +181,7 @@ const registerMultipleEstudiantes = async (req, res) => {
     console.log(error);
     return res.status(500).json({
       ok: false,
-      msg: 'Error del servidor',
+      msg: "Error del servidor",
     });
   }
 };
@@ -160,19 +192,19 @@ const DatosEstudiante = async (req, res) => {
     const id_persona = req.query.id_persona;
 
     if (!dni && !id_persona) {
-      return res.status(400).json({ msg: 'Se requiere dni o id_persona' });
+      return res.status(400).json({ msg: "Se requiere dni o id_persona" });
     }
 
     const estudiante = await AdminModel.dataAlumno({ dni, id_persona });
     //console.log(estudiante)
     if (!estudiante) {
-      return res.status(404).json({ msg: 'Estudiante no encontrado' });
+      return res.status(404).json({ msg: "Estudiante no encontrado" });
     }
     return res.status(200).json(estudiante);
   } catch (error) {
     console.log(error);
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -183,35 +215,35 @@ const DeleteEstudiante = async (req, res) => {
     const existe = await UserModel.verificar_idpersona({ id_persona });
 
     if (!existe) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: "Usuario no encontrado" });
     }
     const delteES = await AdminModel.DeleteAlumno({ id_persona });
 
     if (delteES) {
-      return res.status(200).json({ ok: 'Se eimino correctamente' });
+      return res.status(200).json({ ok: "Se eimino correctamente" });
     }
     return res.status(500).json({
-      msg: 'No se peudo procesar',
+      msg: "No se peudo procesar",
     });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
 const verifyGET = async (req, res) => {
-  return res.status(200).json({ ok: 'listo' });
+  return res.status(200).json({ ok: "listo" });
 };
 const initMostrarEstudaintes = async (req, res) => {
   try {
-    console.log('entre');
+    console.log("entre");
     const estudiante = await AdminModel.mostrarEstudiantes();
     console.log(estudiante);
     return res.status(200).json(estudiante);
   } catch {
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -223,32 +255,32 @@ const MostrarTutor = async (req, res) => {
     return res.status(200).json(tutor);
   } catch {
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
 const DeleteTutor = async (req, res) => {
   try {
     const id_persona = req.query.id_persona;
-    console.log('si' + id_persona);
+    console.log("si" + id_persona);
 
     const existe = await UserModel.verificar_idpersona({ id_persona });
     console.log(existe);
     if (!existe) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: "Usuario no encontrado" });
     }
     const delteES = await AdminModel.eliminarTutor({ id_persona });
 
     if (delteES) {
-      return res.status(200).json({ ok: 'Se eimino correctamente' });
+      return res.status(200).json({ ok: "Se eimino correctamente" });
     }
     return res.status(500).json({
-      msg: 'No se peudo procesar',
+      msg: "No se peudo procesar",
     });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -256,23 +288,25 @@ const DeleteTutor = async (req, res) => {
 const exportarExcelEstudiantes = async (req, res) => {
   try {
     const idSemestre = Number(req.query.id_semestre || 0);
-    const estudiantes = await AdminModel.listarEstudiantesParaExport({ idSemestre });
+    const estudiantes = await AdminModel.listarEstudiantesParaExport({
+      idSemestre,
+    });
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Wiñay XP';
+    workbook.creator = "Wiñay XP";
     workbook.created = new Date();
-    const worksheet = workbook.addWorksheet('Estudiantes');
+    const worksheet = workbook.addWorksheet("Estudiantes");
 
     worksheet.columns = [
-      { header: 'DNI', key: 'dni', width: 15 },
-      { header: 'Nombre', key: 'nombre_persona', width: 20 },
-      { header: 'Apellido', key: 'apellido', width: 20 },
-      { header: 'Email', key: 'email', width: 30 },
-      { header: 'Carrera', key: 'carrera', width: 25 },
-      { header: 'Semestre', key: 'semestre', width: 15 },
-      { header: 'Nivel', key: 'nivel', width: 20 },
-      { header: 'Créditos Totales', key: 'credito_total', width: 18 },
-      { header: 'Créditos Disponibles', key: 'cobro_credito', width: 20 },
+      { header: "DNI", key: "dni", width: 15 },
+      { header: "Nombre", key: "nombre_persona", width: 20 },
+      { header: "Apellido", key: "apellido", width: 20 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Carrera", key: "carrera", width: 25 },
+      { header: "Semestre", key: "semestre", width: 15 },
+      { header: "Nivel", key: "nivel", width: 20 },
+      { header: "Créditos Totales", key: "credito_total", width: 18 },
+      { header: "Créditos Disponibles", key: "cobro_credito", width: 20 },
     ];
 
     estudiantes.forEach((est) => {
@@ -292,42 +326,46 @@ const exportarExcelEstudiantes = async (req, res) => {
     worksheet.getRow(1).font = { bold: true };
 
     res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString().split("T")[0];
     res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="estudiantes_${timestamp}.xlsx"`
+      "Content-Disposition",
+      `attachment; filename="estudiantes_${timestamp}.xlsx"`,
     );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error al exportar estudiantes:', error);
-    return res.status(500).json({ msg: 'Error al generar el archivo de estudiantes' });
+    console.error("Error al exportar estudiantes:", error);
+    return res
+      .status(500)
+      .json({ msg: "Error al generar el archivo de estudiantes" });
   }
 };
 
 const exportarExcelActividades = async (req, res) => {
   try {
     const idSemestre = Number(req.query.id_semestre || 0);
-    const actividades = await AdminModel.listarActividadesParaExport({ idSemestre });
+    const actividades = await AdminModel.listarActividadesParaExport({
+      idSemestre,
+    });
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Wiñay XP';
+    workbook.creator = "Wiñay XP";
     workbook.created = new Date();
-    const worksheet = workbook.addWorksheet('Actividades');
+    const worksheet = workbook.addWorksheet("Actividades");
 
     worksheet.columns = [
-      { header: 'Nombre', key: 'nombre_actividad', width: 30 },
-      { header: 'Fecha Inicio', key: 'fecha_inicio', width: 18 },
-      { header: 'Fecha Fin', key: 'fecha_fin', width: 18 },
-      { header: 'Lugar', key: 'lugar', width: 25 },
-      { header: 'Créditos', key: 'creditos', width: 12 },
-      { header: 'Semestre', key: 'semestre', width: 15 },
-      { header: 'Creador', key: 'creador', width: 25 },
-      { header: 'Total Asistentes', key: 'total_asistentes', width: 18 },
+      { header: "Nombre", key: "nombre_actividad", width: 30 },
+      { header: "Fecha Inicio", key: "fecha_inicio", width: 18 },
+      { header: "Fecha Fin", key: "fecha_fin", width: 18 },
+      { header: "Lugar", key: "lugar", width: 25 },
+      { header: "Créditos", key: "creditos", width: 12 },
+      { header: "Semestre", key: "semestre", width: 15 },
+      { header: "Creador", key: "creador", width: 25 },
+      { header: "Total Asistentes", key: "total_asistentes", width: 18 },
     ];
 
     actividades.forEach((actividad) => {
@@ -346,20 +384,22 @@ const exportarExcelActividades = async (req, res) => {
     worksheet.getRow(1).font = { bold: true };
 
     res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString().split("T")[0];
     res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="actividades_${timestamp}.xlsx"`
+      "Content-Disposition",
+      `attachment; filename="actividades_${timestamp}.xlsx"`,
     );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error al exportar actividades:', error);
-    return res.status(500).json({ msg: 'Error al generar el archivo de actividades' });
+    console.error("Error al exportar actividades:", error);
+    return res
+      .status(500)
+      .json({ msg: "Error al generar el archivo de actividades" });
   }
 };
 
@@ -368,50 +408,55 @@ const obtenerSemestres = async (req, res) => {
     const semestres = await AdminModel.listarSemestres();
     return res.status(200).json(semestres);
   } catch (error) {
-    console.error('Error al obtener semestres:', error);
-    return res.status(500).json({ msg: 'Error al obtener la lista de semestres' });
+    console.error("Error al obtener semestres:", error);
+    return res
+      .status(500)
+      .json({ msg: "Error al obtener la lista de semestres" });
   }
 };
 
 const descargarPlantillaExcel = async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Wiñay XP';
+    workbook.creator = "Wiñay XP";
     workbook.created = new Date();
 
-    const worksheet = workbook.addWorksheet('Plantilla Actividades');
+    const worksheet = workbook.addWorksheet("Plantilla Actividades");
 
     worksheet.columns = [
-      { header: 'Nombre Actividad', key: 'nombre_actividad', width: 30 },
-      { header: 'Fecha Inicio (YYYY-MM-DD)', key: 'fecha_inicio', width: 22 },
-      { header: 'Fecha Fin (YYYY-MM-DD)', key: 'fecha_fin', width: 22 },
-      { header: 'Lugar', key: 'lugar', width: 25 },
-      { header: 'Créditos', key: 'creditos', width: 12 },
-      { header: 'Semestre', key: 'semestre', width: 15 },
+      { header: "Nombre Actividad", key: "nombre_actividad", width: 30 },
+      { header: "Fecha Inicio (YYYY-MM-DD)", key: "fecha_inicio", width: 22 },
+      { header: "Fecha Fin (YYYY-MM-DD)", key: "fecha_fin", width: 22 },
+      { header: "Lugar", key: "lugar", width: 25 },
+      { header: "Créditos", key: "creditos", width: 12 },
+      { header: "Semestre", key: "semestre", width: 15 },
     ];
 
     worksheet.addRow({
-      nombre_actividad: 'Taller de ejemplo',
-      fecha_inicio: '2024-03-01',
-      fecha_fin: '2024-03-01',
-      lugar: 'Auditorio Central',
+      nombre_actividad: "Taller de ejemplo",
+      fecha_inicio: "2024-03-01",
+      fecha_fin: "2024-03-01",
+      lugar: "Auditorio Central",
       creditos: 5,
-      semestre: '2024-I',
+      semestre: "2024-I",
     });
 
     worksheet.getRow(1).font = { bold: true };
 
     res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
-    res.setHeader('Content-Disposition', 'attachment; filename="plantilla_actividades.xlsx"');
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="plantilla_actividades.xlsx"',
+    );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error al generar plantilla:', error);
-    return res.status(500).json({ msg: 'Error al generar la plantilla Excel' });
+    console.error("Error al generar plantilla:", error);
+    return res.status(500).json({ msg: "Error al generar la plantilla Excel" });
   }
 };
 

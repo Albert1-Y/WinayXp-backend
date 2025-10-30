@@ -1,22 +1,22 @@
-import { Router } from 'express';
-import { UserController } from '../controllers/user.controller.js';
+import { Router } from "express";
+import { UserController } from "../controllers/user.controller.js";
 //import { verifyAdmin, verifyToken } from "../middlewares/jwt.middlware.js";
-import { validarLogin } from '../middlewares/validator_entrada.middlware.js';
-import passport from '../middlewares/passport.js';
-import { UserModel } from '../models/user.model.js';
-import ms from 'ms';
-import jwt from 'jsonwebtoken';
+import { validarLogin } from "../middlewares/validator_entrada.middlware.js";
+import passport from "../middlewares/passport.js";
+import { UserModel } from "../models/user.model.js";
+import ms from "ms";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 
-const allowedSameSite = new Set(['strict', 'lax', 'none']);
+const allowedSameSite = new Set(["strict", "lax", "none"]);
 const buildCookieOptions = (maxAge) => {
-  let sameSite = (process.env.COOKIE_SAMESITE || 'strict').toLowerCase();
+  let sameSite = (process.env.COOKIE_SAMESITE || "strict").toLowerCase();
   if (!allowedSameSite.has(sameSite)) {
-    sameSite = 'strict';
+    sameSite = "strict";
   }
-  const secureFromEnv = process.env.COOKIE_SECURE === 'true';
-  const secure = sameSite === 'none' ? true : secureFromEnv;
+  const secureFromEnv = process.env.COOKIE_SECURE === "true";
+  const secure = sameSite === "none" ? true : secureFromEnv;
 
   return {
     httpOnly: true,
@@ -79,7 +79,7 @@ const buildCookieOptions = (maxAge) => {
  *       404:
  *         description: Usuario no encontrado
  */
-router.post('/login', validarLogin, UserController.login);
+router.post("/login", validarLogin, UserController.login);
 
 /**
  * @swagger
@@ -97,7 +97,7 @@ router.post('/login', validarLogin, UserController.login);
  *               items:
  *                 type: object
  */
-router.get('/login', UserController.ranking);
+router.get("/login", UserController.ranking);
 
 /**
  * @swagger
@@ -113,7 +113,7 @@ router.get('/login', UserController.ranking);
  *       401:
  *         description: Usuario no autenticado
  */
-router.post('/logout', UserController.logout);
+router.post("/logout", UserController.logout);
 
 /**
  * @swagger
@@ -126,7 +126,10 @@ router.post('/logout', UserController.logout);
  *       302:
  *         description: Redirección a Google para autenticación
  */
-router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] }),
+);
 
 /**
  * @swagger
@@ -148,15 +151,17 @@ router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 
  *       401:
  *         description: Fallo de autenticación
  */
-router.get('/auth/google/callback', (req, res, next) => {
-  passport.authenticate('google', async (err, user, info) => {
+router.get("/auth/google/callback", (req, res, next) => {
+  passport.authenticate("google", async (err, user, info) => {
     if (err) return next(err);
 
     if (!user) {
       const msg = encodeURIComponent(
-        info?.message || 'Acceso denegado. Contacta al administrador.'
+        info?.message || "Acceso denegado. Contacta al administrador.",
       );
-      return res.redirect(`${process.env.URL_FRONT}/auth/result?status=error&msg=${msg}`);
+      return res.redirect(
+        `${process.env.URL_FRONT}/auth/result?status=error&msg=${msg}`,
+      );
     }
 
     const email = user.email;
@@ -165,32 +170,53 @@ router.get('/auth/google/callback', (req, res, next) => {
       foundUser = await UserModel.createPersona({
         nombre_persona: user.nombre_persona || user.displayName,
         email,
-        rol: 'estudiante',
+        rol: "estudiante",
       });
     }
 
     // Crear y guardar refresh token como en login normal
     const refreshtoken = jwt.sign(
-      { email: foundUser.email, rol: foundUser.rol, id_persona: foundUser.id_persona },
+      {
+        email: foundUser.email,
+        rol: foundUser.rol,
+        id_persona: foundUser.id_persona,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.REFRESH_JWT_EXPIRES_IN }
+      { expiresIn: process.env.REFRESH_JWT_EXPIRES_IN },
     );
-    const id_Rtoken = await UserModel.saverRefreshToken(foundUser.id_persona, refreshtoken);
+    const id_Rtoken = await UserModel.saverRefreshToken(
+      foundUser.id_persona,
+      refreshtoken,
+    );
 
-    res.cookie('Rtoken', id_Rtoken, buildCookieOptions(ms(process.env.COOKIE_RefreshMAXAGE)));
+    res.cookie(
+      "Rtoken",
+      id_Rtoken,
+      buildCookieOptions(ms(process.env.COOKIE_RefreshMAXAGE)),
+    );
 
     // Crear access token y setear cookie
     const token = jwt.sign(
-      { email: foundUser.email, rol: foundUser.rol, id_persona: foundUser.id_persona },
+      {
+        email: foundUser.email,
+        rol: foundUser.rol,
+        id_persona: foundUser.id_persona,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      { expiresIn: process.env.JWT_EXPIRES_IN },
     );
 
-    res.cookie('auth_token', token, buildCookieOptions(ms(process.env.COOKIE_MAXAGE)));
+    res.cookie(
+      "auth_token",
+      token,
+      buildCookieOptions(ms(process.env.COOKIE_MAXAGE)),
+    );
 
     //res.redirect(`${process.env.URL_FRONT}/auth/result?status=success`);
     // Si el frontend usa HashRouter, apunta a /#/auth-result (según App.jsx)
-    res.redirect(`${process.env.URL_FRONT}/#/auth-result?status=success&rol=${foundUser.rol}`);
+    res.redirect(
+      `${process.env.URL_FRONT}/#/auth-result?status=success&rol=${foundUser.rol}`,
+    );
   })(req, res, next);
 });
 
@@ -226,11 +252,11 @@ router.get('/auth/google/callback', (req, res, next) => {
  *       401:
  *         description: No autenticado
  */
-router.post('/user/completar-datos', async (req, res) => {
+router.post("/user/completar-datos", async (req, res) => {
   const { email, dni, nombre_persona, apellido } = req.body;
 
   if (!email || !dni || !nombre_persona || !apellido) {
-    return res.status(400).json({ msg: 'Todos los campos son obligatorios.' });
+    return res.status(400).json({ msg: "Todos los campos son obligatorios." });
   }
 
   try {
@@ -242,12 +268,12 @@ router.post('/user/completar-datos', async (req, res) => {
         nombre_persona,
         apellido,
         dni,
-        rol: 'estudiante',
+        rol: "estudiante",
         activo: false,
       });
 
       return res.status(201).json({
-        msg: 'Usuario registrado correctamente. Pendiente de activacion.',
+        msg: "Usuario registrado correctamente. Pendiente de activacion.",
         id_persona: newUser.id_persona,
       });
     }
@@ -259,10 +285,10 @@ router.post('/user/completar-datos', async (req, res) => {
       apellido,
     });
 
-    return res.json({ msg: 'Datos actualizados correctamente.' });
+    return res.json({ msg: "Datos actualizados correctamente." });
   } catch (error) {
-    console.error('Error al completar datos:', error);
-    return res.status(500).json({ msg: 'Error al procesar los datos.' });
+    console.error("Error al completar datos:", error);
+    return res.status(500).json({ msg: "Error al procesar los datos." });
   }
 });
 

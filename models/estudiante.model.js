@@ -1,4 +1,4 @@
-import { db } from '../database/connection.database.js';
+import { db } from "../database/connection.database.js";
 
 //retorna todo los datos del estudainate para ROL estudiante
 const DatosEstudianteInit = async ({ id_persona }) => {
@@ -34,7 +34,7 @@ const DatosEstudianteInit = async ({ id_persona }) => {
     const { rows } = await db.query(query);
     return rows[0];
   } catch (error) {
-    console.error('Error al obtener datos del estudiante:', error);
+    console.error("Error al obtener datos del estudiante:", error);
     throw error;
   }
 };
@@ -67,7 +67,7 @@ const listarActividadesAsistidas = async ({ id_persona }) => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error('Error al obtener actividades asistidas:', error);
+    console.error("Error al obtener actividades asistidas:", error);
     return [];
   }
 };
@@ -83,25 +83,25 @@ const marcarNivelVisto = async ({ id_estudiante, id_persona, id_nivel }) => {
     valores.push(id_persona);
     filtros.push(`id_persona = $${valores.length}`);
   } else {
-    throw new Error('IDENTIFICADOR_ESTUDIANTE_REQUERIDO');
+    throw new Error("IDENTIFICADOR_ESTUDIANTE_REQUERIDO");
   }
 
   if (!id_nivel || Number.isNaN(Number(id_nivel))) {
-    throw new Error('NIVEL_INVALIDO');
+    throw new Error("NIVEL_INVALIDO");
   }
 
   valores.push(Number(id_nivel));
   const nivelIndex = valores.length;
 
   if (filtros.length === 0) {
-    throw new Error('IDENTIFICADOR_ESTUDIANTE_REQUERIDO');
+    throw new Error("IDENTIFICADOR_ESTUDIANTE_REQUERIDO");
   }
 
   const query = {
     text: `
             UPDATE estudiante
             SET ultimo_nivel_visto = GREATEST(COALESCE(ultimo_nivel_visto, 0), $${nivelIndex})
-            WHERE ${filtros.join(' AND ')}
+            WHERE ${filtros.join(" AND ")}
             RETURNING ultimo_nivel_visto
         `,
     values: valores,
@@ -111,7 +111,7 @@ const marcarNivelVisto = async ({ id_estudiante, id_persona, id_nivel }) => {
     const { rows } = await db.query(query);
     return rows[0]?.ultimo_nivel_visto || null;
   } catch (error) {
-    console.error('Error al actualizar último nivel visto:', error.message);
+    console.error("Error al actualizar último nivel visto:", error.message);
     throw error;
   }
 };

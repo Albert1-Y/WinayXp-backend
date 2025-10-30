@@ -1,5 +1,5 @@
-import 'dotenv/config';
-import pg from 'pg';
+import "dotenv/config";
+import pg from "pg";
 
 const { Pool } = pg;
 
@@ -11,8 +11,8 @@ export const db = new Pool({
 });
 
 try {
-  await db.query('SELECT NOW()');
-  console.log('DATABASE connected');
+  await db.query("SELECT NOW()");
+  console.log("DATABASE connected");
 } catch (error) {
   console.log(error);
 }

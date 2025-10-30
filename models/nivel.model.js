@@ -1,4 +1,4 @@
-import { db } from '../database/connection.database.js';
+import { db } from "../database/connection.database.js";
 
 const obtenerNivelPorCreditos = async ({ creditos }) => {
   const query = {
@@ -22,7 +22,7 @@ const obtenerNivelPorCreditos = async ({ creditos }) => {
     const { rows } = await db.query(query);
     return rows[0] || null;
   } catch (error) {
-    console.error('Error obteniendo nivel por créditos:', error.message);
+    console.error("Error obteniendo nivel por créditos:", error.message);
     return null;
   }
 };
@@ -51,7 +51,7 @@ const listarNivelesPendientes = async ({ desde = 0, hasta }) => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error('Error obteniendo niveles pendientes:', error.message);
+    console.error("Error obteniendo niveles pendientes:", error.message);
     return [];
   }
 };

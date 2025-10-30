@@ -1,16 +1,16 @@
-import bcryptjs from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { UserModel } from '../models/user.model.js';
-import ms from 'ms';
+import bcryptjs from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { UserModel } from "../models/user.model.js";
+import ms from "ms";
 
-const allowedSameSite = new Set(['strict', 'lax', 'none']);
+const allowedSameSite = new Set(["strict", "lax", "none"]);
 const buildCookieOptions = (maxAge) => {
-  let sameSite = (process.env.COOKIE_SAMESITE || 'strict').toLowerCase();
+  let sameSite = (process.env.COOKIE_SAMESITE || "strict").toLowerCase();
   if (!allowedSameSite.has(sameSite)) {
-    sameSite = 'strict';
+    sameSite = "strict";
   }
-  const secureFromEnv = process.env.COOKIE_SECURE === 'true';
-  const secure = sameSite === 'none' ? true : secureFromEnv;
+  const secureFromEnv = process.env.COOKIE_SECURE === "true";
+  const secure = sameSite === "none" ? true : secureFromEnv;
 
   return {
     httpOnly: true,
@@ -25,19 +25,19 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     //console.log(req.body);
-    console.log('estamos comparando contraseñas');
+    console.log("estamos comparando contraseñas");
     const user = await UserModel.findOneByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     if (!user.password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
     const isMatch = await bcryptjs.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
     //crear el refresh token
     const refreshtoken = jwt.sign(
@@ -45,15 +45,18 @@ const login = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: process.env.REFRESH_JWT_EXPIRES_IN,
-      }
+      },
     );
     //guaRdar el refresh en BD
 
-    const id_Rtoken = await UserModel.saverRefreshToken(user.id_persona, refreshtoken);
+    const id_Rtoken = await UserModel.saverRefreshToken(
+      user.id_persona,
+      refreshtoken,
+    );
 
     // cookie gurda la id de resfresh token
     const RmaxAge = ms(process.env.COOKIE_RefreshMAXAGE);
-    res.cookie('Rtoken', id_Rtoken, buildCookieOptions(RmaxAge));
+    res.cookie("Rtoken", id_Rtoken, buildCookieOptions(RmaxAge));
 
     //crear acces token
     const token = jwt.sign(
@@ -61,20 +64,20 @@ const login = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: process.env.JWT_EXPIRES_IN,
-      }
+      },
     );
     const maxAge = ms(process.env.COOKIE_MAXAGE);
 
-    res.cookie('auth_token', token, buildCookieOptions(maxAge));
+    res.cookie("auth_token", token, buildCookieOptions(maxAge));
     return res.status(200).json({
       ok: true,
       rol: user.rol,
-      msg: 'inicion de sesion exitoso',
+      msg: "inicion de sesion exitoso",
     });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -85,7 +88,7 @@ const ranking = async (req, res) => {
     return res.status(200).json(topR);
   } catch {
     return res.status(500).json({
-      msg: 'Error server',
+      msg: "Error server",
     });
   }
 };
@@ -97,13 +100,13 @@ const logout = async (req, res) => {
       await UserModel.eliminarRtoken(id_refresh);
     }
 
-    res.clearCookie('auth_token');
-    res.clearCookie('Rtoken');
-    console.log('sali');
-    return res.status(200).json({ message: 'Sesión cerrada correctamente' });
+    res.clearCookie("auth_token");
+    res.clearCookie("Rtoken");
+    console.log("sali");
+    return res.status(200).json({ message: "Sesión cerrada correctamente" });
   } catch (error) {
-    console.error('Error al cerrar sesión:', error);
-    return res.status(500).json({ error: 'Error al cerrar sesión' });
+    console.error("Error al cerrar sesión:", error);
+    return res.status(500).json({ error: "Error al cerrar sesión" });
   }
 };
 
