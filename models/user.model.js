@@ -101,7 +101,8 @@ const rankingtopByCarrera = async (nombreCarrera) => {
                 SELECT 
                     p.nombre_persona AS nombre,
                     p.apellido,
-                    c.nombre_carrera AS carrera, 
+                    c.nombre_carrera AS carrera,
+                    e.semestre,
                     e.credito_total,
                     n.nombre_nivel 
                 FROM estudiante e
