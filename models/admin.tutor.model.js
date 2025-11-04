@@ -1,4 +1,4 @@
-import { db } from "../database/connection.database.js";
+const { db } = require("../database/connection.database.js");
 
 const datotAdminTutor = async ({ id_persona }) => {
   const query = {
@@ -22,6 +22,8 @@ const datotAdminTutor = async ({ id_persona }) => {
     return null;
   }
 };
-export const ModelAdminTutor = {
+const ModelAdminTutor = {
   datotAdminTutor,
 };
+
+module.exports = { ModelAdminTutor };

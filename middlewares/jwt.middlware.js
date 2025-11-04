@@ -1,9 +1,9 @@
-import jwt from "jsonwebtoken";
-import { UserModel } from "../models/user.model.js";
-import { UtilsTokenAcceso } from "../Utils/creartoken.js";
+const jwt = require("jsonwebtoken");
+const { UserModel } = require("../models/user.model.js");
+const { UtilsTokenAcceso } = require("../Utils/creartoken.js");
 
 //verificar que la  cookie  sigue activa
-export const verifyToken = async (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   //console.log(req.signedCookies.auth_token);
   const token = req.signedCookies.auth_token;
 
@@ -102,27 +102,35 @@ export const verifyToken = async (req, res, next) => {
   }
 };
 
-export const verifyAdmin = (req, res, next) => {
+const verifyAdmin = (req, res, next) => {
   if (req.rol === "administrador") {
     return next();
   }
   return res.status(403).json({ error: "Unauthorized only admin user" });
 };
-export const verifyTutor = (req, res, next) => {
+const verifyTutor = (req, res, next) => {
   if (req.rol === "tutor") {
     return next();
   }
   return res.status(403).json({ error: "Unauthorized only tutor user" });
 };
-export const verifyAdminTutor = (req, res, next) => {
+const verifyAdminTutor = (req, res, next) => {
   if (req.rol === "tutor" || req.rol === "administrador") {
     return next();
   }
   return res.status(403).json({ error: "No autorizado" });
 };
-export const verifyEstudiante = (req, res, next) => {
+const verifyEstudiante = (req, res, next) => {
   if (req.rol === "estudiante") {
     return next();
   }
   return res.status(403).json({ error: "No autorizado" });
+};
+
+module.exports = {
+  verifyToken,
+  verifyAdmin,
+  verifyTutor,
+  verifyAdminTutor,
+  verifyEstudiante,
 };

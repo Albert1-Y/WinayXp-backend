@@ -1,14 +1,14 @@
-import { Router } from "express";
-import {
+const { Router } = require("express");
+const {
   AdminController,
   AdminSharedController,
-} from "../controllers/admin.controller.js";
-import { AdminActividadController } from "../controllers/admin.controller.actividad.js";
-import {
+} = require("../controllers/admin.controller.js");
+const { AdminActividadController } = require("../controllers/admin.controller.actividad.js");
+const {
   verifyAdmin,
   verifyAdminTutor,
   verifyToken,
-} from "../middlewares/jwt.middlware.js";
+} = require("../middlewares/jwt.middlware.js");
 
 const router = Router();
 
@@ -743,4 +743,4 @@ router.delete(
   AdminController.DeleteTutor,
 );
 
-export default router;
+module.exports = router;

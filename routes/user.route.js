@@ -1,11 +1,11 @@
-import { Router } from "express";
-import { UserController } from "../controllers/user.controller.js";
+const { Router } = require("express");
+const { UserController } = require("../controllers/user.controller.js");
 //import { verifyAdmin, verifyToken } from "../middlewares/jwt.middlware.js";
-import { validarLogin } from "../middlewares/validator_entrada.middlware.js";
-import passport from "../middlewares/passport.js";
-import { UserModel } from "../models/user.model.js";
-import ms from "ms";
-import jwt from "jsonwebtoken";
+const { validarLogin } = require("../middlewares/validator_entrada.middlware.js");
+const passport = require("../middlewares/passport.js");
+const { UserModel } = require("../models/user.model.js");
+const ms = require("ms");
+const jwt = require("jsonwebtoken");
 
 const router = Router();
 
@@ -292,4 +292,4 @@ router.post("/user/completar-datos", async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;

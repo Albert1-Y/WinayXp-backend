@@ -1,4 +1,4 @@
-import { db } from "../database/connection.database.js";
+const { db } = require("../database/connection.database.js");
 
 //retorna todo los datos del estudainate para ROL estudiante
 const DatosEstudianteInit = async ({ id_persona }) => {
@@ -116,8 +116,10 @@ const marcarNivelVisto = async ({ id_estudiante, id_persona, id_nivel }) => {
   }
 };
 
-export const EstudianteModel = {
+const EstudianteModel = {
   DatosEstudianteInit,
   listarActividadesAsistidas,
   marcarNivelVisto,
 };
+
+module.exports = { EstudianteModel };

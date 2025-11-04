@@ -1,5 +1,5 @@
-import { AdminModel } from "../models/admin.model.js";
-import bcryptjs from "bcryptjs";
+const { AdminModel } = require("../models/admin.model.js");
+const bcryptjs = require("bcryptjs");
 
 const crearActividad = async (req, res) => {
   try {
@@ -258,7 +258,7 @@ const actualizarAsistenciaEstudiante = async (req, res) => {
   }
 };
 
-export const AdminActividadController = {
+const AdminActividadController = {
   crearActividad,
   DeleteActividad,
   MostrarActividad,
@@ -267,3 +267,5 @@ export const AdminActividadController = {
   obtenerAsistenciaActividad,
   actualizarAsistenciaEstudiante,
 };
+
+module.exports = { AdminActividadController };
