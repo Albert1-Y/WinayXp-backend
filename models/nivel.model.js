@@ -1,4 +1,4 @@
-import { db } from "../database/connection.database.js";
+const { db } = require("../database/connection.database.js");
 
 const obtenerNivelPorCreditos = async ({ creditos }) => {
   const query = {
@@ -56,7 +56,9 @@ const listarNivelesPendientes = async ({ desde = 0, hasta }) => {
   }
 };
 
-export const NivelModel = {
+const NivelModel = {
   obtenerNivelPorCreditos,
   listarNivelesPendientes,
 };
+
+module.exports = { NivelModel };

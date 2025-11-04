@@ -1,4 +1,4 @@
-import { db } from "../database/connection.database.js";
+const { db } = require("../database/connection.database.js");
 
 const saverRefreshToken = async (id_persona, token) => {
   const query = {
@@ -194,7 +194,7 @@ const updatePersonaDatos = async ({
   await db.query(query);
 };
 
-export const UserModel = {
+const UserModel = {
   verifyRtoken,
   findOneByEmail,
   saverRefreshToken,
@@ -205,3 +205,5 @@ export const UserModel = {
   createPersona,
   updatePersonaDatos,
 };
+
+module.exports = { UserModel };

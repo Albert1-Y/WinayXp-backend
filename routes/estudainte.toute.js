@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { EstudianteController } from "../controllers/estudiante.controller.js";
-import { verifyToken, verifyEstudiante } from "../middlewares/jwt.middlware.js";
+const { Router } = require("express");
+const { EstudianteController } = require("../controllers/estudiante.controller.js");
+const { verifyToken, verifyEstudiante } = require("../middlewares/jwt.middlware.js");
 
 const router = Router();
 
@@ -114,4 +114,4 @@ router.put(
   EstudianteController.confirmarNivelesVistos,
 );
 
-export default router;
+module.exports = router;

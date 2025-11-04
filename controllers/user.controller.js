@@ -1,7 +1,7 @@
-import bcryptjs from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { UserModel } from "../models/user.model.js";
-import ms from "ms";
+const bcryptjs = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { UserModel } = require("../models/user.model.js");
+const ms = require("ms");
 
 const allowedSameSite = new Set(["strict", "lax", "none"]);
 const buildCookieOptions = (maxAge) => {
@@ -110,8 +110,10 @@ const logout = async (req, res) => {
   }
 };
 
-export const UserController = {
+const UserController = {
   login,
   ranking,
   logout,
 };
+
+module.exports = { UserController };

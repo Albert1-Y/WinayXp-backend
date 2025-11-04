@@ -1,5 +1,5 @@
-import { db } from "../database/connection.database.js";
-import { NivelModel } from "./nivel.model.js";
+const { db } = require("../database/connection.database.js");
+const { NivelModel } = require("./nivel.model.js");
 
 const creaPersona = async ({
   dni,
@@ -940,7 +940,7 @@ const listarSemestres = async () => {
   }
 };
 
-export const AdminModel = {
+const AdminModel = {
   creaPersona,
   creaEstudiante,
   creaActividad,
@@ -962,3 +962,5 @@ export const AdminModel = {
   guardarAsistenciaEstudiante,
   listarSemestres,
 };
+
+module.exports = { AdminModel };

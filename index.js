@@ -1,18 +1,18 @@
-import "dotenv/config";
-import cookieParser from "cookie-parser";
-import express from "express";
-import cors from "cors";
-import path from "path";
-import userRouter from "./routes/user.route.js";
+require("dotenv/config");
+const cookieParser = require("cookie-parser");
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const userRouter = require("./routes/user.route.js");
 
-import session from "express-session";
+const session = require("express-session");
 
-import passport from "./middlewares/passport.js";
+const passport = require("./middlewares/passport.js");
 
-import { swaggerUiMiddleware, swaggerUiSetup } from "./swagger.js";
+const { swaggerUiMiddleware, swaggerUiSetup } = require("./swagger.js");
 
-import adminRouter from "./routes/admin.route.js";
-import estudianteRouter from "./routes/estudainte.toute.js";
+const adminRouter = require("./routes/admin.route.js");
+const estudianteRouter = require("./routes/estudainte.toute.js");
 const app = express();
 
 app.set("trust proxy", 1); // trust Render/Heroku style reverse proxies for secure cookies

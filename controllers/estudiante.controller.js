@@ -1,7 +1,7 @@
-import { EstudianteModel } from "../models/estudiante.model.js";
-import { UserModel } from "../models/user.model.js";
-import { NivelModel } from "../models/nivel.model.js";
-import ms from "ms";
+const { EstudianteModel } = require("../models/estudiante.model.js");
+const { UserModel } = require("../models/user.model.js");
+const { NivelModel } = require("../models/nivel.model.js");
+const ms = require("ms");
 
 const InitEstudiante = async (req, res) => {
   try {
@@ -97,7 +97,7 @@ const confirmarNivelesVistos = async (req, res) => {
   }
 };
 
-export const EstudianteController = {
+const EstudianteController = {
   InitEstudiante,
   getActividadesAsistidas,
   confirmarNivelesVistos,
@@ -116,3 +116,5 @@ export const EstudianteController = {
     }
   },
 };
+
+module.exports = { EstudianteController };

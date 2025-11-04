@@ -1,8 +1,8 @@
-import { AdminModel } from "../models/admin.model.js";
-import { UserModel } from "../models/user.model.js";
-import { ModelAdminTutor } from "../models/admin.tutor.model.js";
-import ExcelJS from "exceljs";
-import bcryptjs from "bcryptjs";
+const { AdminModel } = require("../models/admin.model.js");
+const { UserModel } = require("../models/user.model.js");
+const { ModelAdminTutor } = require("../models/admin.tutor.model.js");
+const ExcelJS = require("exceljs");
+const bcryptjs = require("bcryptjs");
 
 const register_Admin_tutor = async (req, res) => {
   try {
@@ -460,12 +460,12 @@ const descargarPlantillaExcel = async (req, res) => {
   }
 };
 
-export const AdminController = {
+const AdminController = {
   register_Admin_tutor,
   MostrarTutor,
   DeleteTutor,
 };
-export const AdminSharedController = {
+const AdminSharedController = {
   registeEstudiante,
   DatosEstudiante,
   DeleteEstudiante,
@@ -478,3 +478,5 @@ export const AdminSharedController = {
   obtenerSemestres,
   descargarPlantillaExcel,
 };
+
+module.exports = { AdminController, AdminSharedController };

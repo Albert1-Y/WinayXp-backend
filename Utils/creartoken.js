@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
-import ms from "ms";
+const jwt = require("jsonwebtoken");
+const ms = require("ms");
 
 function crearTokenCookie(res, payload) {
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -18,6 +18,8 @@ function crearTokenCookie(res, payload) {
 
   return token;
 }
-export const UtilsTokenAcceso = {
+const UtilsTokenAcceso = {
   crearTokenCookie,
 };
+
+module.exports = { UtilsTokenAcceso };
