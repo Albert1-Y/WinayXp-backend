@@ -1,6 +1,11 @@
 const { Router } = require("express");
-const { EstudianteController } = require("../controllers/estudiante.controller.js");
-const { verifyToken, verifyEstudiante } = require("../middlewares/jwt.middlware.js");
+const {
+  EstudianteController,
+} = require("../controllers/estudiante.controller.js");
+const {
+  verifyToken,
+  verifyEstudiante,
+} = require("../middlewares/jwt.middlware.js");
 
 const router = Router();
 
@@ -112,6 +117,13 @@ router.put(
   verifyToken,
   verifyEstudiante,
   EstudianteController.confirmarNivelesVistos,
+);
+
+router.get(
+  "/niveles",
+  verifyToken,
+  verifyEstudiante,
+  EstudianteController.listarNiveles,
 );
 
 module.exports = router;

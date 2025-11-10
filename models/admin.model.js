@@ -334,10 +334,7 @@ const dataAlumno = async ({ dni, id_persona }) => {
   }
 };
 
-const obtenerActividadPorNombreFecha = async ({
-  nombre_actividad,
-  fecha,
-}) => {
+const obtenerActividadPorNombreFecha = async ({ nombre_actividad, fecha }) => {
   if (!nombre_actividad || !fecha) {
     return null;
   }
@@ -1477,14 +1474,13 @@ const bonificarPuntos = async ({
 
   const puntosNumber = Number(puntos);
   if (!Number.isFinite(puntosNumber) || puntosNumber <= 0) {
-    throw buildError(
-      "VALIDATION_ERROR",
-      "puntos debe ser un entero mayor a 0",
-    );
+    throw buildError("VALIDATION_ERROR", "puntos debe ser un entero mayor a 0");
   }
 
   if (id_actividad !== undefined && id_actividad !== null) {
-    const existe = await actividadExiste({ id_actividad: Number(id_actividad) });
+    const existe = await actividadExiste({
+      id_actividad: Number(id_actividad),
+    });
     if (!existe) {
       throw buildError(
         "ACTIVIDAD_NO_ENCONTRADA",

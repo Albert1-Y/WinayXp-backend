@@ -7,4 +7,3 @@
     process.exit(1);
   }
 })();
-

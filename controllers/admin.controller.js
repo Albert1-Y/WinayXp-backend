@@ -260,9 +260,8 @@ const actualizarEstudiante = async (req, res) => {
       payload.semestre = cleaned || null;
     }
 
-    const estudianteActualizado = await AdminModel.actualizarEstudiante(
-      payload,
-    );
+    const estudianteActualizado =
+      await AdminModel.actualizarEstudiante(payload);
 
     return res.status(200).json({
       ok: true,
@@ -299,17 +298,18 @@ const cobrarPuntos = async (req, res) => {
     if (!motivo || motivo.length < 5) {
       return res
         .status(400)
-        .json({ msg: "El motivo es requerido y debe tener al menos 5 caracteres" });
+        .json({
+          msg: "El motivo es requerido y debe tener al menos 5 caracteres",
+        });
     }
 
     const idCobrador = Number(req.id_persona);
     const rolCobrador = req.rol;
 
-    if (
-      !idCobrador ||
-      !["tutor", "administrador"].includes(rolCobrador)
-    ) {
-      return res.status(403).json({ msg: "No autorizado para realizar cobros" });
+    if (!idCobrador || !["tutor", "administrador"].includes(rolCobrador)) {
+      return res
+        .status(403)
+        .json({ msg: "No autorizado para realizar cobros" });
     }
 
     const resultado = await AdminModel.cobrarPuntos({
@@ -364,7 +364,9 @@ const bonificarPuntos = async (req, res) => {
     if (!motivo || motivo.length < 5) {
       return res
         .status(400)
-        .json({ msg: "El motivo es requerido y debe tener al menos 5 caracteres" });
+        .json({
+          msg: "El motivo es requerido y debe tener al menos 5 caracteres",
+        });
     }
 
     if (
@@ -378,7 +380,9 @@ const bonificarPuntos = async (req, res) => {
     const rolAutor = req.rol;
 
     if (!idAutor || !["tutor", "administrador"].includes(rolAutor)) {
-      return res.status(403).json({ msg: "No autorizado para bonificar puntos" });
+      return res
+        .status(403)
+        .json({ msg: "No autorizado para bonificar puntos" });
     }
 
     const resultado = await AdminModel.bonificarPuntos({
@@ -725,11 +729,19 @@ const descargarPlantillaHistoricos = async (req, res) => {
 
     const columns = [
       { header: "nombre_actividad", key: "nombre_actividad", width: 35 },
-      { header: "fecha_actividad (YYYY-MM-DD)", key: "fecha_actividad", width: 26 },
+      {
+        header: "fecha_actividad (YYYY-MM-DD)",
+        key: "fecha_actividad",
+        width: 26,
+      },
       { header: "creditos", key: "creditos", width: 15 },
       { header: "semestre (2024-I)", key: "semestre", width: 20 },
       { header: "dni_estudiante", key: "dni_estudiante", width: 18 },
-      { header: "tipo_registro (asistencia|bonus)", key: "tipo_registro", width: 30 },
+      {
+        header: "tipo_registro (asistencia|bonus)",
+        key: "tipo_registro",
+        width: 30,
+      },
       { header: "comentario", key: "comentario", width: 35 },
       { header: "dni_autor (opcional)", key: "dni_autor", width: 20 },
     ];
@@ -739,7 +751,8 @@ const descargarPlantillaHistoricos = async (req, res) => {
     worksheet.getRow(1).alignment = { horizontal: "center" };
 
     const instructionRow = worksheet.addRow({
-      nombre_actividad: "No modificar los encabezados. Cada fila = asistencia historic.",
+      nombre_actividad:
+        "No modificar los encabezados. Cada fila = asistencia historic.",
       fecha_actividad: "Formato obligatorio YYYY-MM-DD",
       creditos: "Entero >= 0",
       semestre: "Ej. 2024-I",
@@ -790,7 +803,10 @@ const descargarPlantillaHistoricos = async (req, res) => {
       selectUnlockedCells: true,
     });
 
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
     res.setHeader(
       "Content-Disposition",
       'attachment; filename="plantilla_carga_historica.xlsx"',
@@ -800,7 +816,9 @@ const descargarPlantillaHistoricos = async (req, res) => {
     res.end();
   } catch (error) {
     console.error("Error al generar plantilla histórica:", error);
-    return res.status(500).json({ msg: "Error al generar la plantilla histórica" });
+    return res
+      .status(500)
+      .json({ msg: "Error al generar la plantilla histórica" });
   }
 };
 
@@ -944,17 +962,23 @@ const importarHistoricos = async (req, res) => {
     }
 
     const headerRow = worksheet.getRow(1);
-    const headers = headerRow.values.slice(1).map((cell) => sanitizeString(cell));
+    const headers = headerRow.values
+      .slice(1)
+      .map((cell) => sanitizeString(cell));
 
     if (headers.length !== HEADER_MAP.length) {
-      return res.status(400).json({ msg: "Encabezados inválidos o incompletos" });
+      return res
+        .status(400)
+        .json({ msg: "Encabezados inválidos o incompletos" });
     }
 
     for (let i = 0; i < HEADER_MAP.length; i += 1) {
       if (headers[i] !== HEADER_MAP[i]) {
         return res
           .status(400)
-          .json({ msg: `Encabezado inesperado en la columna ${i + 1}: se esperaba '${HEADER_MAP[i]}'` });
+          .json({
+            msg: `Encabezado inesperado en la columna ${i + 1}: se esperaba '${HEADER_MAP[i]}'`,
+          });
       }
     }
 
@@ -968,10 +992,11 @@ const importarHistoricos = async (req, res) => {
       }
 
       const fechaISO = fechaClave;
-      const actividadExistente = await AdminModel.obtenerActividadPorNombreFecha({
-        nombre_actividad: nombre,
-        fecha: fechaISO,
-      });
+      const actividadExistente =
+        await AdminModel.obtenerActividadPorNombreFecha({
+          nombre_actividad: nombre,
+          fecha: fechaISO,
+        });
 
       if (actividadExistente) {
         if (Number(actividadExistente.creditos) !== Number(creditos)) {
@@ -999,7 +1024,10 @@ const importarHistoricos = async (req, res) => {
     const obtenerEstudiantePorDni = async (dni) => {
       const resultado = await AdminModel.obtenerEstudiantePorDni(dni);
       if (!resultado) {
-        throw buildError("ESTUDIANTE_NO_ENCONTRADO", `Estudiante con DNI ${dni} no existe o está inactivo`);
+        throw buildError(
+          "ESTUDIANTE_NO_ENCONTRADO",
+          `Estudiante con DNI ${dni} no existe o está inactivo`,
+        );
       }
       return resultado;
     };
@@ -1012,7 +1040,8 @@ const importarHistoricos = async (req, res) => {
       const semestre = sanitizeString(row.getCell(4).text);
       const dniEstudiante = sanitizeString(row.getCell(5).text);
       const tipoRegistro = sanitizeString(row.getCell(6).text) || "asistencia";
-      const comentario = sanitizeString(row.getCell(7).text) || "Carga histórica";
+      const comentario =
+        sanitizeString(row.getCell(7).text) || "Carga histórica";
       const dniAutor = sanitizeString(row.getCell(8).text);
 
       const isInstructionRow =
@@ -1038,17 +1067,29 @@ const importarHistoricos = async (req, res) => {
 
       try {
         if (!nombreActividad) {
-          throw buildError("VALIDATION_ERROR", "nombre_actividad es obligatorio");
+          throw buildError(
+            "VALIDATION_ERROR",
+            "nombre_actividad es obligatorio",
+          );
         }
         if (!fechaActividadRaw) {
-          throw buildError("VALIDATION_ERROR", "fecha_actividad es obligatoria");
+          throw buildError(
+            "VALIDATION_ERROR",
+            "fecha_actividad es obligatoria",
+          );
         }
         const fechaActividad = new Date(fechaActividadRaw);
         if (Number.isNaN(fechaActividad.getTime())) {
-          throw buildError("VALIDATION_ERROR", "fecha_actividad inválida (usar YYYY-MM-DD)");
+          throw buildError(
+            "VALIDATION_ERROR",
+            "fecha_actividad inválida (usar YYYY-MM-DD)",
+          );
         }
         if (!Number.isFinite(creditosRaw) || creditosRaw < 0) {
-          throw buildError("VALIDATION_ERROR", "creditos debe ser un entero >= 0");
+          throw buildError(
+            "VALIDATION_ERROR",
+            "creditos debe ser un entero >= 0",
+          );
         }
         if (!semestre) {
           throw buildError("VALIDATION_ERROR", "semestre es obligatorio");
@@ -1069,7 +1110,10 @@ const importarHistoricos = async (req, res) => {
             : null;
 
         if (dniAutor && !autorPersona) {
-          throw buildError("AUTOR_NO_ENCONTRADO", `No existe persona con DNI ${dniAutor}`);
+          throw buildError(
+            "AUTOR_NO_ENCONTRADO",
+            `No existe persona con DNI ${dniAutor}`,
+          );
         }
 
         if (!autorPersona) {
@@ -1136,7 +1180,9 @@ const importarHistoricos = async (req, res) => {
     });
   } catch (error) {
     console.error("Error al importar históricos:", error);
-    return res.status(500).json({ msg: "Error al procesar el archivo histórico" });
+    return res
+      .status(500)
+      .json({ msg: "Error al procesar el archivo histórico" });
   } finally {
     try {
       await fs.unlink(req.file.path);

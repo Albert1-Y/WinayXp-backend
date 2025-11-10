@@ -56,9 +56,34 @@ const listarNivelesPendientes = async ({ desde = 0, hasta }) => {
   }
 };
 
+const listarTodosLosNiveles = async () => {
+  const query = {
+    text: `
+        SELECT
+          id_nivel,
+          nombre_nivel,
+          rango_inicio,
+          rango_fin,
+          nombre_imagen,
+          descripcion
+        FROM niveles
+        ORDER BY rango_inicio
+      `,
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows;
+  } catch (error) {
+    console.error("Error listando niveles:", error.message);
+    return [];
+  }
+};
+
 const NivelModel = {
   obtenerNivelPorCreditos,
   listarNivelesPendientes,
+  listarTodosLosNiveles,
 };
 
 module.exports = { NivelModel };

@@ -3,7 +3,9 @@ const {
   AdminController,
   AdminSharedController,
 } = require("../controllers/admin.controller.js");
-const { AdminActividadController } = require("../controllers/admin.controller.actividad.js");
+const {
+  AdminActividadController,
+} = require("../controllers/admin.controller.actividad.js");
 const {
   verifyAdmin,
   verifyAdminTutor,

@@ -27,7 +27,10 @@ const upload = multer({
     if (allowedTypes.has(file.mimetype)) {
       return cb(null, true);
     }
-    if (file.originalname && file.originalname.toLowerCase().endsWith(".xlsx")) {
+    if (
+      file.originalname &&
+      file.originalname.toLowerCase().endsWith(".xlsx")
+    ) {
       return cb(null, true);
     }
     return cb(new Error("Formato de archivo no soportado"));

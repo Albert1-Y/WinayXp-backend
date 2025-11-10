@@ -172,6 +172,7 @@
 | `GET`    | `/api/admin/descargar-plantilla`      | `verifyToken` + `verifyAdminTutor` | Descarga plantilla Excel para carga masiva de actividades.                         |
 | `GET`    | `/api/admin/MostrarTutores`           | `verifyToken` + `verifyAdmin`      | Lista tutores habilitados.                                                         |
 | `DELETE` | `/api/admin/DeleteTutores`            | `verifyToken` + `verifyAdmin`      | Baja logica de tutor.                                                              |
+| `GET`    | `/api/estudiante/niveles`             | `verifyToken` + `verifyEstudiante` | Lista todos los niveles y marca cuál corresponde al estudiante autenticado.        |
 
 ### Notas de seguridad
 
@@ -292,23 +293,24 @@ Todas las consultas usan parametrizacion con `pg.Pool` (`database/connection.dat
 
 4. **Experiencia de usuario**:
    - Desde el detalle del estudiante, agregar acceso directo al historial con `id_estudiante` prefiltrado.
+
 - Guardar filtros en la URL (query string) para permitir compartir vistas específicas del historial.
 
 ## Carga histórica de actividades/asistencias
 
 Para reconstruir créditos de eventos pasados sin exponer IDs internos, los tutores/administradores deben descargar la plantilla protegida (`GET /api/admin/descargar-plantilla-historicos`) y subirla completa. Cada fila representa una asistencia o un bono histórico:
 
-| Columna | Tipo | Requerido | Descripción |
-| --- | --- | --- | --- |
-| `nombre_actividad` | Texto | Sí | Nombre exacto de la actividad. Se usa como identificador natural. Si no existe, se creará con este nombre. |
-| `fecha_actividad` | Fecha (`YYYY-MM-DD`) | Sí | Fecha real del evento; también se usa para registrar la asistencia y validar duplicados (nombre + fecha). |
-| `creditos` | Entero ≥ 0 | Sí | Créditos de la actividad. Si la actividad ya existe con otro valor, la fila se marca como error. |
-| `semestre` | Texto (`2024-I`, `2024-II`, etc.) | Sí | Se asigna al crear actividades nuevas o para estadísticas. |
-| `dni_estudiante` | Texto (8–12) | Sí | Identifica al estudiante. El backend resuelve `id_persona/id_estudiante` a partir del DNI; si no existe, la fila se rechaza. |
-| `nombre_estudiante` | Texto | Opcional | Informativo, para validar manualmente. No se usa como clave. |
-| `tipo_registro` | Texto (`asistencia`/`bonus`) | Opcional (default `asistencia`) | `asistencia`: inserta/activa fila en `asiste` y suma créditos. `bonus`: solo suma créditos y registra el movimiento. |
-| `comentario` | Texto | Opcional | Se guarda como motivo en `historial_movimiento_creditos` (ej. “Carga histórica 2023”). |
-| `dni_autor` | Texto | Opcional | DNI del tutor/admin responsable. Si se omite, se usa el usuario autenticado que sube el archivo. |
+| Columna             | Tipo                              | Requerido                       | Descripción                                                                                                                  |
+| ------------------- | --------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `nombre_actividad`  | Texto                             | Sí                              | Nombre exacto de la actividad. Se usa como identificador natural. Si no existe, se creará con este nombre.                   |
+| `fecha_actividad`   | Fecha (`YYYY-MM-DD`)              | Sí                              | Fecha real del evento; también se usa para registrar la asistencia y validar duplicados (nombre + fecha).                    |
+| `creditos`          | Entero ≥ 0                        | Sí                              | Créditos de la actividad. Si la actividad ya existe con otro valor, la fila se marca como error.                             |
+| `semestre`          | Texto (`2024-I`, `2024-II`, etc.) | Sí                              | Se asigna al crear actividades nuevas o para estadísticas.                                                                   |
+| `dni_estudiante`    | Texto (8–12)                      | Sí                              | Identifica al estudiante. El backend resuelve `id_persona/id_estudiante` a partir del DNI; si no existe, la fila se rechaza. |
+| `nombre_estudiante` | Texto                             | Opcional                        | Informativo, para validar manualmente. No se usa como clave.                                                                 |
+| `tipo_registro`     | Texto (`asistencia`/`bonus`)      | Opcional (default `asistencia`) | `asistencia`: inserta/activa fila en `asiste` y suma créditos. `bonus`: solo suma créditos y registra el movimiento.         |
+| `comentario`        | Texto                             | Opcional                        | Se guarda como motivo en `historial_movimiento_creditos` (ej. “Carga histórica 2023”).                                       |
+| `dni_autor`         | Texto                             | Opcional                        | DNI del tutor/admin responsable. Si se omite, se usa el usuario autenticado que sube el archivo.                             |
 
 ### Flujo del importador (por implementar)
 

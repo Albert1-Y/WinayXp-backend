@@ -1,7 +1,9 @@
 const { Router } = require("express");
 const { UserController } = require("../controllers/user.controller.js");
 //import { verifyAdmin, verifyToken } from "../middlewares/jwt.middlware.js";
-const { validarLogin } = require("../middlewares/validator_entrada.middlware.js");
+const {
+  validarLogin,
+} = require("../middlewares/validator_entrada.middlware.js");
 const passport = require("../middlewares/passport.js");
 const { UserModel } = require("../models/user.model.js");
 const ms = require("ms");
