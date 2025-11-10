@@ -9,6 +9,7 @@ const {
   verifyAdminTutor,
   verifyToken,
 } = require("../middlewares/jwt.middlware.js");
+const { upload } = require("../middlewares/upload.middleware.js");
 
 const router = Router();
 
@@ -118,6 +119,13 @@ router.post(
   verifyToken,
   verifyAdminTutor,
   AdminSharedController.registeEstudiante,
+);
+
+router.put(
+  "/ActulizarEstudiante",
+  verifyToken,
+  verifyAdmin,
+  AdminSharedController.actualizarEstudiante,
 );
 
 /**
@@ -261,6 +269,13 @@ router.delete(
   verifyToken,
   verifyAdminTutor,
   AdminSharedController.DeleteEstudiante,
+);
+
+router.put(
+  "/CobrarPuntos",
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.cobrarPuntos,
 );
 
 /**
@@ -690,6 +705,14 @@ router.get(
   verifyToken,
   verifyAdminTutor,
   AdminSharedController.descargarPlantillaExcel,
+);
+
+router.post(
+  "/excel",
+  verifyToken,
+  verifyAdmin,
+  upload.single("file"),
+  AdminSharedController.importarExcel,
 );
 
 /**

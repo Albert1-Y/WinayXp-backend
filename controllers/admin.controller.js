@@ -1,3 +1,4 @@
+const fs = require("fs/promises");
 const { AdminModel } = require("../models/admin.model.js");
 const { UserModel } = require("../models/user.model.js");
 const { ModelAdminTutor } = require("../models/admin.tutor.model.js");
@@ -185,6 +186,140 @@ const registerMultipleEstudiantes = async (req, res) => {
     });
   }
 };
+
+const sanitizeString = (value) => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  return String(value).trim();
+};
+
+const actualizarEstudiante = async (req, res) => {
+  try {
+    const {
+      id_persona,
+      dni,
+      nombre_persona,
+      apellido,
+      email,
+      carrera,
+      semestre,
+    } = req.body || {};
+
+    const idPersonaNumber = Number(id_persona);
+    if (!idPersonaNumber) {
+      return res.status(400).json({ msg: "id_persona es requerido" });
+    }
+
+    const payload = {
+      id_persona: idPersonaNumber,
+    };
+
+    if (dni !== undefined) {
+      const cleaned = sanitizeString(dni);
+      if (!cleaned) {
+        return res.status(400).json({ msg: "dni inválido" });
+      }
+      payload.dni = cleaned;
+    }
+
+    if (nombre_persona !== undefined) {
+      const cleaned = sanitizeString(nombre_persona);
+      if (!cleaned) {
+        return res.status(400).json({ msg: "nombre_persona inválido" });
+      }
+      payload.nombre_persona = cleaned;
+    }
+
+    if (apellido !== undefined) {
+      const cleaned = sanitizeString(apellido);
+      if (!cleaned) {
+        return res.status(400).json({ msg: "apellido inválido" });
+      }
+      payload.apellido = cleaned;
+    }
+
+    if (email !== undefined) {
+      const cleaned = sanitizeString(email);
+      if (!cleaned || !cleaned.includes("@")) {
+        return res.status(400).json({ msg: "email inválido" });
+      }
+      payload.email = cleaned.toLowerCase();
+    }
+
+    if (carrera !== undefined) {
+      const cleaned = sanitizeString(carrera);
+      if (!cleaned) {
+        return res.status(400).json({ msg: "carrera inválida" });
+      }
+      payload.carrera = cleaned;
+    }
+
+    if (semestre !== undefined) {
+      const cleaned = sanitizeString(semestre);
+      payload.semestre = cleaned || null;
+    }
+
+    const estudianteActualizado = await AdminModel.actualizarEstudiante(
+      payload,
+    );
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Estudiante actualizado correctamente",
+      estudiante: estudianteActualizado,
+    });
+  } catch (error) {
+    if (error.code === "ESTUDIANTE_NO_ENCONTRADO") {
+      return res.status(404).json({ msg: "Estudiante no encontrado" });
+    }
+    if (error.code === "EMAIL_DUPLICADO") {
+      return res.status(409).json({ msg: "El email ya está registrado" });
+    }
+    if (error.code === "VALIDATION_ERROR") {
+      return res.status(400).json({ msg: error.message });
+    }
+    console.error("Error al actualizar estudiante:", error);
+    return res.status(500).json({ msg: "Error al actualizar estudiante" });
+  }
+};
+
+const cobrarPuntos = async (req, res) => {
+  try {
+    const idPersonaNumber = Number(req.body?.id_persona);
+    const puntos = Number(req.body?.puntos);
+
+    if (!idPersonaNumber || !Number.isInteger(puntos) || puntos <= 0) {
+      return res
+        .status(400)
+        .json({ msg: "id_persona y puntos válidos son requeridos" });
+    }
+
+    const resultado = await AdminModel.cobrarPuntos({
+      id_persona: idPersonaNumber,
+      puntos,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Puntos descontados correctamente",
+      saldo: {
+        credito_total: resultado.credito_total,
+        cobro_credito: resultado.cobro_credito,
+      },
+    });
+  } catch (error) {
+    if (error.code === "ESTUDIANTE_NO_ENCONTRADO") {
+      return res.status(404).json({ msg: "Estudiante no encontrado" });
+    }
+    if (error.code === "SALDO_INSUFICIENTE") {
+      return res.status(400).json({ msg: error.message });
+    }
+    console.error("Error al cobrar puntos:", error);
+    return res.status(500).json({ msg: "Error al cobrar puntos" });
+  }
+};
+
 //proporcianremos los datosd el estudinate, ya sea para uin delete
 const DatosEstudiante = async (req, res) => {
   try {
@@ -287,10 +422,7 @@ const DeleteTutor = async (req, res) => {
 
 const exportarExcelEstudiantes = async (req, res) => {
   try {
-    const idSemestre = Number(req.query.id_semestre || 0);
-    const estudiantes = await AdminModel.listarEstudiantesParaExport({
-      idSemestre,
-    });
+    const estudiantes = await AdminModel.listarEstudiantesParaExport();
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "Wiñay XP";
@@ -460,6 +592,113 @@ const descargarPlantillaExcel = async (req, res) => {
   }
 };
 
+const importarExcel = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ msg: "Archivo requerido" });
+  }
+
+  const resumen = {
+    procesados: 0,
+    errores: [],
+  };
+
+  const workbook = new ExcelJS.Workbook();
+  try {
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) {
+      return res.status(400).json({ msg: "Archivo sin hojas válidas" });
+    }
+
+    for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber += 1) {
+      const row = worksheet.getRow(rowNumber);
+      const nombre_actividad = sanitizeString(row.getCell(1).text);
+      const fechaInicioRaw = row.getCell(2).value;
+      const fechaFinRaw = row.getCell(3).value;
+      const lugar = sanitizeString(row.getCell(4).text);
+      const creditos = Number(row.getCell(5).value);
+      const semestre = sanitizeString(row.getCell(6).text);
+
+      if (
+        !nombre_actividad &&
+        !fechaInicioRaw &&
+        !fechaFinRaw &&
+        !lugar &&
+        !row.getCell(5).value &&
+        !semestre
+      ) {
+        continue;
+      }
+
+      const parseFecha = (valor) => {
+        if (!valor) return null;
+        if (valor instanceof Date) {
+          return valor.toISOString();
+        }
+        const fecha = new Date(valor);
+        if (Number.isNaN(fecha.getTime())) {
+          return null;
+        }
+        return fecha.toISOString();
+      };
+
+      const fecha_inicio = parseFecha(fechaInicioRaw);
+      const fecha_fin = parseFecha(fechaFinRaw);
+
+      if (
+        !nombre_actividad ||
+        !fecha_inicio ||
+        !fecha_fin ||
+        !lugar ||
+        Number.isNaN(creditos) ||
+        creditos <= 0 ||
+        !semestre
+      ) {
+        resumen.errores.push({
+          fila: rowNumber,
+          error: "Datos incompletos o inválidos",
+        });
+        continue;
+      }
+
+      try {
+        await AdminModel.creaActividad({
+          idPersona: req.id_persona,
+          nombre_actividad,
+          fecha_inicio,
+          fecha_fin,
+          lugar,
+          creditos,
+          semestre,
+        });
+        resumen.procesados += 1;
+      } catch (error) {
+        console.error("Error importando fila:", error);
+        resumen.errores.push({
+          fila: rowNumber,
+          error: "No se pudo crear la actividad",
+        });
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      msg: "Importación finalizada",
+      ...resumen,
+    });
+  } catch (error) {
+    console.error("Error al procesar Excel:", error);
+    return res.status(500).json({ msg: "Error al procesar el archivo" });
+  } finally {
+    try {
+      await fs.unlink(req.file.path);
+    } catch (err) {
+      console.warn("No se pudo eliminar archivo temporal:", err.message);
+    }
+  }
+};
+
 const AdminController = {
   register_Admin_tutor,
   MostrarTutor,
@@ -467,6 +706,8 @@ const AdminController = {
 };
 const AdminSharedController = {
   registeEstudiante,
+  actualizarEstudiante,
+  cobrarPuntos,
   DatosEstudiante,
   DeleteEstudiante,
   verifyGET,
@@ -477,6 +718,7 @@ const AdminSharedController = {
   exportarExcelActividades,
   obtenerSemestres,
   descargarPlantillaExcel,
+  importarExcel,
 };
 
 module.exports = { AdminController, AdminSharedController };

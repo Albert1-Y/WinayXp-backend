@@ -1,6 +1,12 @@
 const { db } = require("../database/connection.database.js");
 const { NivelModel } = require("./nivel.model.js");
 
+const buildError = (code, message) => {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+};
+
 const creaPersona = async ({
   dni,
   email,
@@ -36,6 +42,34 @@ const creaPersona = async ({
   return { id_persona: persona.id_persona };
 };
 
+const obtenerOCrearCarreraPorNombre = async (nombreCarrera) => {
+  if (!nombreCarrera) {
+    return null;
+  }
+  const normalizado = nombreCarrera.trim();
+  if (!normalizado) {
+    return null;
+  }
+
+  const selectQuery = {
+    text: `SELECT id_carrera FROM carrera WHERE LOWER(nombre_carrera) = LOWER($1) LIMIT 1`,
+    values: [normalizado],
+  };
+
+  const resultado = await db.query(selectQuery);
+  if (resultado.rows.length > 0) {
+    return resultado.rows[0].id_carrera;
+  }
+
+  const insertQuery = {
+    text: `INSERT INTO carrera (nombre_carrera) VALUES ($1) RETURNING id_carrera`,
+    values: [normalizado],
+  };
+
+  const insertResult = await db.query(insertQuery);
+  return insertResult.rows[0].id_carrera;
+};
+
 const creaEstudiante = async ({
   dni,
   email,
@@ -56,25 +90,7 @@ const creaEstudiante = async ({
       rol: "estudiante",
     });
 
-    const buscarCarreraQuery = {
-      text: `SELECT id_carrera FROM carrera WHERE nombre_carrera = $1`, // Corregido a nombre_carrera
-      values: [carrera],
-    };
-
-    const resultadoCarrera = await db.query(buscarCarreraQuery);
-    let id_carrera;
-
-    if (resultadoCarrera.rows.length > 0) {
-      id_carrera = resultadoCarrera.rows[0].id_carrera;
-    } else {
-      const insertarCarreraQuery = {
-        text: `INSERT INTO carrera (nombre_carrera) VALUES ($1) RETURNING id_carrera`, // Corregido a nombre_carrera
-        values: [carrera],
-      };
-
-      const insertCarreraResult = await db.query(insertarCarreraQuery);
-      id_carrera = insertCarreraResult.rows[0].id_carrera;
-    }
+    const id_carrera = await obtenerOCrearCarreraPorNombre(carrera);
 
     const estudianteQuery = {
       text: `
@@ -314,6 +330,128 @@ const dataAlumno = async ({ dni, id_persona }) => {
     return resultado.rows[0];
   } catch (error) {
     console.error("Error al consultar persona por DNI:", error);
+    throw error;
+  }
+};
+
+const actualizarEstudiante = async ({
+  id_persona,
+  dni,
+  nombre_persona,
+  apellido,
+  email,
+  carrera,
+  semestre,
+}) => {
+  if (!id_persona) {
+    throw buildError("VALIDATION_ERROR", "id_persona es requerido");
+  }
+
+  await db.query("BEGIN");
+
+  try {
+    const estudianteResult = await db.query(
+      `
+        SELECT e.id_estudiante, p.id_persona
+        FROM estudiante e
+        INNER JOIN persona p ON e.id_persona = p.id_persona
+        WHERE p.id_persona = $1
+          AND p.activo = TRUE
+          AND e.activo = TRUE
+          AND p.rol = 'estudiante'
+        FOR UPDATE
+      `,
+      [id_persona],
+    );
+
+    if (estudianteResult.rows.length === 0) {
+      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+    }
+
+    const personaUpdates = [];
+    const personaValues = [id_persona];
+    let idx = 2;
+    const pushPersonaUpdate = (field, value) => {
+      personaUpdates.push(`${field} = $${idx}`);
+      personaValues.push(value);
+      idx += 1;
+    };
+
+    if (dni !== undefined) {
+      pushPersonaUpdate("dni", dni);
+    }
+    if (nombre_persona !== undefined) {
+      pushPersonaUpdate("nombre_persona", nombre_persona);
+    }
+    if (apellido !== undefined) {
+      pushPersonaUpdate("apellido", apellido);
+    }
+    if (email !== undefined) {
+      const emailDuplicado = await db.query(
+        `
+          SELECT 1
+          FROM persona
+          WHERE email = $1 AND id_persona <> $2 AND activo = TRUE
+          LIMIT 1
+        `,
+        [email, id_persona],
+      );
+      if (emailDuplicado.rows.length > 0) {
+        throw buildError("EMAIL_DUPLICADO", "El email ya está registrado");
+      }
+      pushPersonaUpdate("email", email);
+    }
+
+    if (personaUpdates.length > 0) {
+      await db.query(
+        `
+          UPDATE persona
+          SET ${personaUpdates.join(", ")}
+          WHERE id_persona = $1
+        `,
+        personaValues,
+      );
+    }
+
+    const estudianteUpdates = [];
+    const estudianteValues = [estudianteResult.rows[0].id_estudiante];
+    let estudianteIdx = 2;
+    const pushEstUpdate = (field, value) => {
+      estudianteUpdates.push(`${field} = $${estudianteIdx}`);
+      estudianteValues.push(value);
+      estudianteIdx += 1;
+    };
+
+    if (carrera !== undefined) {
+      const id_carrera = await obtenerOCrearCarreraPorNombre(carrera);
+      if (id_carrera) {
+        pushEstUpdate("id_carrera", id_carrera);
+      }
+    }
+
+    if (semestre !== undefined) {
+      pushEstUpdate("semestre", semestre);
+    }
+
+    if (estudianteUpdates.length > 0) {
+      await db.query(
+        `
+          UPDATE estudiante
+          SET ${estudianteUpdates.join(", ")}
+          WHERE id_estudiante = $1
+        `,
+        estudianteValues,
+      );
+    }
+
+    await db.query("COMMIT");
+    const actualizado = await dataAlumno({ id_persona });
+    return actualizado;
+  } catch (error) {
+    await db.query("ROLLBACK");
+    if (!error.code) {
+      console.error("Error actualizando estudiante:", error.message);
+    }
     throw error;
   }
 };
@@ -592,15 +730,50 @@ const obtenerNombreSemestre = async (id_semestre) => {
   }
 };
 
-const listarEstudiantesParaExport = async ({ idSemestre }) => {
+const listarEstudiantesParaExport = async ({
+  idSemestre,
+  nombreSemestre,
+} = {}) => {
   const filtros = ["p.activo = TRUE"];
   const values = [];
 
   try {
-    const semestreNombre = await obtenerNombreSemestre(idSemestre);
-    if (semestreNombre) {
-      values.push(semestreNombre);
-      filtros.push(`e.semestre = $${values.length}`);
+    const semestreValores = [];
+
+    if (nombreSemestre && typeof nombreSemestre === "string") {
+      const literal = nombreSemestre.trim();
+      if (literal) {
+        semestreValores.push(literal);
+      }
+    } else if (idSemestre && Number(idSemestre) !== 0) {
+      const numericId = Number(idSemestre);
+      if (Number.isNaN(numericId)) {
+        const literal = String(idSemestre).trim();
+        if (literal) {
+          semestreValores.push(literal);
+        }
+      } else {
+        semestreValores.push(String(numericId));
+        const semestreNombre = await obtenerNombreSemestre(numericId);
+        if (semestreNombre) {
+          semestreValores.push(semestreNombre);
+        }
+      }
+    }
+
+    if (semestreValores.length > 0) {
+      const normalizados = semestreValores
+        .map((valor) => valor.trim())
+        .filter(Boolean)
+        .map((valor) => valor.toLowerCase());
+
+      if (normalizados.length > 0) {
+        const placeholders = normalizados.map(
+          (_, idx) => `$${values.length + idx + 1}`,
+        );
+        normalizados.forEach((valor) => values.push(valor));
+        filtros.push(`LOWER(e.semestre::text) IN (${placeholders.join(", ")})`);
+      }
     }
 
     const query = {
@@ -620,7 +793,14 @@ const listarEstudiantesParaExport = async ({ idSemestre }) => {
                 LEFT JOIN carrera c ON e.id_carrera = c.id_carrera
                 LEFT JOIN niveles n ON e.id_nivel = n.id_nivel
                 WHERE ${filtros.join(" AND ")}
-                ORDER BY p.apellido, p.nombre_persona
+                ORDER BY 
+                  CASE 
+                    WHEN e.semestre IS NULL THEN 1
+                    ELSE 0
+                  END,
+                  e.semestre::text,
+                  p.apellido,
+                  p.nombre_persona
             `,
       values,
     };
@@ -920,6 +1100,70 @@ const guardarAsistenciaEstudiante = async ({
   }
 };
 
+const cobrarPuntos = async ({ id_persona, puntos }) => {
+  if (!id_persona || !puntos) {
+    throw buildError("VALIDATION_ERROR", "Datos insuficientes para cobrar");
+  }
+
+  await db.query("BEGIN");
+
+  try {
+    const estudianteResult = await db.query(
+      `
+        SELECT 
+          e.id_estudiante,
+          COALESCE(e.credito_total, 0) AS credito_total,
+          COALESCE(e.cobro_credito, 0) AS cobro_credito
+        FROM estudiante e
+        INNER JOIN persona p ON e.id_persona = p.id_persona
+        WHERE e.id_persona = $1
+          AND e.activo = TRUE
+          AND p.activo = TRUE
+        FOR UPDATE
+      `,
+      [id_persona],
+    );
+
+    if (estudianteResult.rows.length === 0) {
+      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+    }
+
+    const estudiante = estudianteResult.rows[0];
+    if (Number(estudiante.cobro_credito) < puntos) {
+      throw buildError(
+        "SALDO_INSUFICIENTE",
+        "El estudiante no cuenta con saldo suficiente",
+      );
+    }
+
+    const updateResult = await db.query(
+      `
+        UPDATE estudiante
+        SET
+          credito_total = GREATEST(COALESCE(credito_total, 0) - $1, 0),
+          cobro_credito = GREATEST(COALESCE(cobro_credito, 0) - $1, 0)
+        WHERE id_estudiante = $2
+        RETURNING credito_total, cobro_credito
+      `,
+      [puntos, estudiante.id_estudiante],
+    );
+
+    await db.query("COMMIT");
+    return {
+      id_persona,
+      id_estudiante: estudiante.id_estudiante,
+      credito_total: updateResult.rows[0].credito_total,
+      cobro_credito: updateResult.rows[0].cobro_credito,
+    };
+  } catch (error) {
+    await db.query("ROLLBACK");
+    if (!error.code) {
+      console.error("Error cobrando puntos:", error.message);
+    }
+    throw error;
+  }
+};
+
 const listarSemestres = async () => {
   const query = {
     text: `
@@ -946,6 +1190,7 @@ const AdminModel = {
   creaActividad,
   actualizarActividad,
   dataAlumno,
+  actualizarEstudiante,
   obtenerEstudiantePorIdPersona,
   DeleteAlumno,
   DeleteActividad,
@@ -960,6 +1205,7 @@ const AdminModel = {
   listarAsistenciaPorActividad,
   obtenerRegistroAsistencia,
   guardarAsistenciaEstudiante,
+  cobrarPuntos,
   listarSemestres,
 };
 
