@@ -64,15 +64,17 @@ const InitEstudiante = async (req, res) => {
 const getActividadesAsistidas = async (req, res) => {
   try {
     const id_persona = req.id_persona;
-    const actividades = await EstudianteModel.listarActividadesAsistidas({
+    const limit = Number(req.query.limit) || 50;
+    const actividades = await EstudianteModel.listarMovimientosHistorico({
       id_persona,
+      limit,
     });
     return res.status(200).json(actividades);
   } catch (error) {
     console.log(error);
     return res
       .status(500)
-      .json({ msg: "Error al obtener actividades asistidas" });
+      .json({ msg: "Error al obtener historial de movimientos" });
   }
 };
 

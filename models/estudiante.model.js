@@ -39,35 +39,38 @@ const DatosEstudianteInit = async ({ id_persona }) => {
   }
 };
 
-const listarActividadesAsistidas = async ({ id_persona }) => {
+const listarMovimientosHistorico = async ({ id_persona, limit = 50 }) => {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 200));
+
   const query = {
     text: `
-            SELECT
-                a.id_actividad,
-                a.nombre_actividad,
-                a.fecha_inicio,
-                a.fecha_fin,
-                a.lugar,
-                a.creditos,
-                COALESCE(s.semestre, 'Sin periodo') AS semestre,
-                asis.fecha_asistencia
-            FROM asiste asis
-            INNER JOIN estudiante e ON asis.id_estudiante = e.id_estudiante
-            INNER JOIN actividad a ON asis.id_actividad = a.id_actividad
-            LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
-            WHERE e.id_persona = $1
-              AND a.activo = TRUE
-              AND (asis.activo IS NULL OR asis.activo = TRUE)
-            ORDER BY a.fecha_inicio DESC
-        `,
-    values: [id_persona],
+        SELECT
+          hmc.id_movimiento,
+          hmc.tipo_movimiento,
+          hmc.creditos,
+          hmc.motivo,
+          hmc.created_at AS fecha_asistencia,
+          hmc.id_actividad,
+          act.nombre_actividad,
+          p_autor.nombre_persona || ' ' || p_autor.apellido AS autor,
+          hmc.rol_autor
+        FROM historial_movimiento_creditos hmc
+        INNER JOIN estudiante e ON hmc.id_estudiante = e.id_estudiante
+        INNER JOIN persona p ON e.id_persona = p.id_persona
+        LEFT JOIN actividad act ON hmc.id_actividad = act.id_actividad
+        LEFT JOIN persona p_autor ON hmc.id_autor = p_autor.id_persona
+        WHERE p.id_persona = $1
+        ORDER BY hmc.created_at DESC
+        LIMIT $2
+      `,
+    values: [id_persona, safeLimit],
   };
 
   try {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error al obtener actividades asistidas:", error);
+    console.error("Error al obtener historial del estudiante:", error);
     return [];
   }
 };
@@ -118,7 +121,7 @@ const marcarNivelVisto = async ({ id_estudiante, id_persona, id_nivel }) => {
 
 const EstudianteModel = {
   DatosEstudianteInit,
-  listarActividadesAsistidas,
+  listarMovimientosHistorico,
   marcarNivelVisto,
 };
 

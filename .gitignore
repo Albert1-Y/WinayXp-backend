@@ -4,3 +4,8 @@ node_modules
 .prettierrc
 .prettierignore
 .vscode
+
+# Ignore database files
+*.sqlite3
+*.db
+*.sql

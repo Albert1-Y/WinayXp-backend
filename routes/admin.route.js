@@ -271,11 +271,164 @@ router.delete(
   AdminSharedController.DeleteEstudiante,
 );
 
+/**
+ * @swagger
+ * /api/admin/CobrarPuntos:
+ *   put:
+ *     summary: Cobrar puntos a un estudiante
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Solo accesible para administradores o tutores autenticados.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_persona
+ *               - puntos
+ *               - motivo
+ *             properties:
+ *               id_persona:
+ *                 type: integer
+ *                 description: ID de la persona (estudiante) a quien se le cobrará.
+ *               puntos:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Cantidad de puntos a descontar.
+ *               motivo:
+ *                 type: string
+ *                 minLength: 5
+ *                 description: Justificación visible en el historial de movimientos.
+ *     responses:
+ *       200:
+ *         description: Puntos descontados correctamente.
+ *       400:
+ *         description: Datos inválidos o saldo insuficiente.
+ *       403:
+ *         description: No autorizado (solo tutores/administradores).
+ *       404:
+ *         description: Estudiante no encontrado.
+ */
 router.put(
   "/CobrarPuntos",
   verifyToken,
   verifyAdminTutor,
   AdminSharedController.cobrarPuntos,
+);
+
+/**
+ * @swagger
+ * /api/admin/BonificarPuntos:
+ *   post:
+ *     summary: Otorgar puntos por acciones destacadas
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Incrementa los créditos de un estudiante y registra el motivo en el historial (solo tutores/administradores).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_persona
+ *               - puntos
+ *               - motivo
+ *             properties:
+ *               id_persona:
+ *                 type: integer
+ *               puntos:
+ *                 type: integer
+ *                 minimum: 1
+ *               motivo:
+ *                 type: string
+ *                 minLength: 5
+ *               id_actividad:
+ *                 type: integer
+ *                 description: Opcional; actividad donde ocurrió la acción destacada.
+ *     responses:
+ *       200:
+ *         description: Puntos bonificados correctamente.
+ *       400:
+ *         description: Datos inválidos.
+ *       403:
+ *         description: No autorizado.
+ *       404:
+ *         description: Estudiante o actividad no encontrada.
+ */
+router.post(
+  "/BonificarPuntos",
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.bonificarPuntos,
+);
+
+/**
+ * @swagger
+ * /api/admin/HistorialMovimientos:
+ *   get:
+ *     summary: Listar historial de movimientos de créditos
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Retorna movimientos filtrables por estudiante, tipo y rango de fechas.
+ *     parameters:
+ *       - in: query
+ *         name: id_estudiante
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: ID del estudiante para filtrar el historial.
+ *       - in: query
+ *         name: tipo_movimiento
+ *         schema:
+ *           type: string
+ *           enum: [asistencia, bonus, cobro, ajuste]
+ *         required: false
+ *         description: Tipo específico de movimiento.
+ *       - in: query
+ *         name: fecha_inicio
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         required: false
+ *         description: Fecha inicial (ISO 8601) del filtro.
+ *       - in: query
+ *         name: fecha_fin
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         required: false
+ *         description: Fecha final (ISO 8601) del filtro.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         required: false
+ *         description: Máximo de registros por página (tope 200).
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         required: false
+ *         description: Desplazamiento para paginación.
+ *     responses:
+ *       200:
+ *         description: Historial recuperado correctamente.
+ *       403:
+ *         description: No autorizado.
+ */
+router.get(
+  "/HistorialMovimientos",
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.listarHistorialMovimientos,
 );
 
 /**
@@ -700,11 +853,48 @@ router.get(
   AdminSharedController.exportarExcelActividades,
 );
 
+/**
+ * @swagger
+ * /api/admin/descargar-plantilla:
+ *   get:
+ *     summary: Descargar plantilla Excel de actividades
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Proporciona el archivo base para registrar actividades nuevas.
+ *     responses:
+ *       200:
+ *         description: Archivo generado correctamente.
+ *       403:
+ *         description: No autorizado.
+ */
 router.get(
   "/descargar-plantilla",
   verifyToken,
   verifyAdminTutor,
   AdminSharedController.descargarPlantillaExcel,
+);
+
+/**
+ * @swagger
+ * /api/admin/descargar-plantilla-historicos:
+ *   get:
+ *     summary: Descargar plantilla protegida para carga histórica de asistencias/bonos
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Entrega un .xlsx con encabezados bloqueados y filas preformateadas para cargar eventos históricos.
+ *     responses:
+ *       200:
+ *         description: Archivo generado correctamente.
+ *       403:
+ *         description: No autorizado.
+ */
+router.get(
+  "/descargar-plantilla-historicos",
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.descargarPlantillaHistoricos,
 );
 
 router.post(
@@ -713,6 +903,41 @@ router.post(
   verifyAdmin,
   upload.single("file"),
   AdminSharedController.importarExcel,
+);
+
+/**
+ * @swagger
+ * /api/admin/importar-historicos:
+ *   post:
+ *     summary: Importar asistencias/bonos históricos desde Excel
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     description: Procesa la plantilla protegida de carga histórica y actualiza créditos, asistencias y el historial.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Archivo procesado correctamente.
+ *       400:
+ *         description: Archivo inválido.
+ *       403:
+ *         description: No autorizado.
+ */
+router.post(
+  "/importar-historicos",
+  verifyToken,
+  verifyAdminTutor,
+  upload.single("file"),
+  AdminSharedController.importarHistoricos,
 );
 
 /**

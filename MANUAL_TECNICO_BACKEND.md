@@ -203,6 +203,138 @@ Todas las consultas usan parametrizacion con `pg.Pool` (`database/connection.dat
 - `Utils/creartoken.js`
   - Funcion `crearTokenCookie(res, payload)`: genera JWT, calcula `maxAge` usando `ms` y fija la cookie `auth_token` con opciones seguras (`httpOnly`, `signed`, `secure`, `sameSite`).
 
+## Historial de movimientos de créditos
+
+### Endpoints expuestos
+
+- `PUT /api/admin/CobrarPuntos`
+  - Requiere roles `tutor` o `administrador`, autenticados vía cookies (`verifyToken + verifyAdminTutor`).
+  - Cuerpo JSON obligatorio:
+    ```json
+    {
+      "id_persona": 42,
+      "puntos": 50,
+      "motivo": "Compra de kit de bienvenida"
+    }
+    ```
+  - Respuesta exitosa:
+    ```json
+    {
+      "ok": true,
+      "msg": "Puntos descontados correctamente",
+      "saldo": {
+        "credito_total": 120,
+        "cobro_credito": 70
+      },
+      "movimiento": 815
+    }
+    ```
+  - Errores esperados: `400` (validación o saldo insuficiente), `403` (rol no autorizado), `404` (estudiante inexistente/inactivo).
+
+- `GET /api/admin/HistorialMovimientos`
+  - Parámetros opcionales:
+    - `id_estudiante`: entero.
+    - `dni`: texto; si se envía, el backend resuelve el estudiante y filtra sus movimientos. Si el DNI no existe, retorna `data: []` sin error.
+    - `tipo_movimiento`: `asistencia | bonus | cobro | ajuste`.
+    - `fecha_inicio`, `fecha_fin`: cadenas ISO8601 (`YYYY-MM-DD` o `YYYY-MM-DDTHH:mm:ssZ`).
+    - `limit` (default 50, máximo 200) y `offset` para paginación.
+  - Ejemplo de respuesta:
+    ```json
+    {
+      "ok": true,
+      "data": [
+        {
+          "id_movimiento": 815,
+          "id_estudiante": 12,
+          "estudiante": "María Pérez",
+          "tipo_movimiento": "cobro",
+          "creditos": -50,
+          "motivo": "Compra de kit de bienvenida",
+          "nombre_actividad": null,
+          "autor": "Luis Gómez",
+          "rol_autor": "tutor",
+          "created_at": "2025-01-05T14:12:33.851Z"
+        }
+      ],
+      "count": 1
+    }
+    ```
+
+### QA/manual testing sugerido
+
+1. **Cobro exitoso**: enviar payload válido y verificar que `credito_total`/`cobro_credito` decrecen; confirmar nuevo registro en `/HistorialMovimientos`.
+2. **Saldo insuficiente**: intentar descontar más puntos de los disponibles, esperar `400` con mensaje `El estudiante no cuenta con saldo suficiente` y ausencia de movimiento.
+3. **Motivo inválido**: motivo vacío o menor a 5 caracteres debe devolver `400`.
+4. **Autorización**: realizar la petición con token de estudiante para comprobar respuesta `403`.
+5. **Historial filtrado**:
+   - Filtrar por `id_estudiante` y `tipo_movimiento=cobro`.
+   - Aplicar rangos `fecha_inicio`/`fecha_fin`.
+   - Usar `limit` reducido y `offset` para confirmar paginación.
+6. **Orden cronológico**: registrar un cobro y luego un bonus/asistencia; listar sin filtros y verificar orden descendente por `created_at`.
+
+### Notas para frontend
+
+1. **Formulario de cobro**:
+   - Añadir campo obligatorio “Motivo del cobro” (mínimo 5 caracteres, trim al enviar).
+   - Consumir `PUT /api/admin/CobrarPuntos` con `{ id_persona, puntos, motivo }`.
+   - Mostrar `msg` de éxito y actualizar saldos con `saldo.credito_total` y `saldo.cobro_credito`.
+   - Usar `movimiento` (ID) para enlazar con el historial o mostrar referencia.
+
+2. **Pantalla de historial**:
+   - Crear tabla paginada que consuma `GET /api/admin/HistorialMovimientos`.
+   - Incluir filtros UI para estudiante, tipo de movimiento y rango de fechas (mapear a query params).
+   - Mostrar columnas: fecha, estudiante, tipo (con etiquetas), créditos (negativos en rojo), motivo, autor/rol e identificación de actividad.
+   - Implementar paginación con `limit/offset` y estados de carga/error.
+
+3. **Validaciones de cliente**:
+   - Prevenir envíos con `puntos <= 0` o motivos cortos para evitar errores 400.
+   - Cuando el backend responde `SALDO_INSUFICIENTE`, mantener el formulario editable y resaltar el saldo actual mostrado por la API.
+
+4. **Experiencia de usuario**:
+   - Desde el detalle del estudiante, agregar acceso directo al historial con `id_estudiante` prefiltrado.
+- Guardar filtros en la URL (query string) para permitir compartir vistas específicas del historial.
+
+## Carga histórica de actividades/asistencias
+
+Para reconstruir créditos de eventos pasados sin exponer IDs internos, los tutores/administradores deben descargar la plantilla protegida (`GET /api/admin/descargar-plantilla-historicos`) y subirla completa. Cada fila representa una asistencia o un bono histórico:
+
+| Columna | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- |
+| `nombre_actividad` | Texto | Sí | Nombre exacto de la actividad. Se usa como identificador natural. Si no existe, se creará con este nombre. |
+| `fecha_actividad` | Fecha (`YYYY-MM-DD`) | Sí | Fecha real del evento; también se usa para registrar la asistencia y validar duplicados (nombre + fecha). |
+| `creditos` | Entero ≥ 0 | Sí | Créditos de la actividad. Si la actividad ya existe con otro valor, la fila se marca como error. |
+| `semestre` | Texto (`2024-I`, `2024-II`, etc.) | Sí | Se asigna al crear actividades nuevas o para estadísticas. |
+| `dni_estudiante` | Texto (8–12) | Sí | Identifica al estudiante. El backend resuelve `id_persona/id_estudiante` a partir del DNI; si no existe, la fila se rechaza. |
+| `nombre_estudiante` | Texto | Opcional | Informativo, para validar manualmente. No se usa como clave. |
+| `tipo_registro` | Texto (`asistencia`/`bonus`) | Opcional (default `asistencia`) | `asistencia`: inserta/activa fila en `asiste` y suma créditos. `bonus`: solo suma créditos y registra el movimiento. |
+| `comentario` | Texto | Opcional | Se guarda como motivo en `historial_movimiento_creditos` (ej. “Carga histórica 2023”). |
+| `dni_autor` | Texto | Opcional | DNI del tutor/admin responsable. Si se omite, se usa el usuario autenticado que sube el archivo. |
+
+### Flujo del importador (por implementar)
+
+1. Leer el Excel, normalizar strings y validar encabezados exactos.
+2. Por cada fila:
+   - Buscar actividad por `nombre_actividad` + `fecha_actividad`. Si no existe, crearla (asignando `creditos`, `semestre`, `fecha_inicio/fin = fecha_actividad`, `id_creador = usuario actual`).
+   - Resolver al estudiante activo vía `dni_estudiante`. Si no existe, registrar la fila en el reporte de errores.
+   - Si `tipo_registro = asistencia` (default):
+     - Insertar o activar registro en `asiste` (`id_estudiante`, `id_actividad`, `fecha_asistencia = fecha_actividad`).
+     - Incrementar `credito_total` y `cobro_credito` del estudiante dentro de una transacción.
+     - Recalcular nivel (`id_nivel`) si corresponde.
+     - Registrar movimiento en `historial_movimiento_creditos` con `tipo_movimiento = 'asistencia'`, `creditos = creditos`, `motivo = comentario` y `id_actividad` seteado.
+   - Si `tipo_registro = bonus`:
+     - Omitir `asiste`, pero sumar créditos igual y registrar movimiento `tipo = 'bonus'` (sin `id_actividad`).
+3. Al finalizar, devolver al usuario un resumen `{ procesadas, errores: [...], actividades_creadas, movimientos_registrados }`.
+
+### Reglas / validaciones
+
+- El encabezado debe coincidir exactamente con los nombres definidos; no se aceptan celdas combinadas ni fórmulas.
+- Una combinación `nombre_actividad + fecha_actividad` solo puede crear o actualizar una actividad; si el Excel trae valores contradictorios de créditos, marcar la fila como error.
+- Un estudiante no puede tener dos asistencias activas para la misma actividad; duplicados se ignoran con advertencia.
+- Todos los montos deben ser enteros; si se ingresan decimales o negativos, la fila se rechaza.
+- El archivo debe estar en formato `.xlsx`; cada carga se procesa dentro de una transacción por actividad para asegurar consistencia.
+
+> Nota: Si más adelante se agrega una columna `codigo_actividad` en la tabla, este formato se puede extender para usarla como identificador estable sin depender del nombre.
+
 ## Documentacion y pruebas manuales
 
 - Swagger UI disponible en `http://<host>:<port>/docs`.
@@ -243,3 +375,28 @@ Todas las consultas usan parametrizacion con `pg.Pool` (`database/connection.dat
 - Verificar rotacion periodica de claves (`SESSION_SECRET`, `JWT_SECRET`, `COOKIE_RMA_cokie`).
 - Supervisar tablas `refresh_tokens` para evitar crecimiento ilimitado (agregar procesos de limpieza si es necesario).
 - Asegurar backups periodicos de la base PostgreSQL.
+- `POST /api/admin/BonificarPuntos`
+  - Requiere roles `tutor` o `administrador`.
+  - Cuerpo JSON:
+    ```json
+    {
+      "id_persona": 42,
+      "puntos": 25,
+      "motivo": "Reconocimiento por liderazgo",
+      "id_actividad": 18
+    }
+    ```
+    `id_actividad` es opcional y sirve para enlazar la bonificación con una actividad existente.
+  - Respuesta:
+    ```json
+    {
+      "ok": true,
+      "msg": "Puntos bonificados correctamente",
+      "saldo": {
+        "credito_total": 145,
+        "cobro_credito": 95
+      },
+      "movimiento": 912
+    }
+    ```
+  - Errores: `400` (validación), `403` (rol no autorizado), `404` (estudiante o actividad inexistente).

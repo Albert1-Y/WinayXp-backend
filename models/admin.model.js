@@ -334,6 +334,101 @@ const dataAlumno = async ({ dni, id_persona }) => {
   }
 };
 
+const obtenerActividadPorNombreFecha = async ({
+  nombre_actividad,
+  fecha,
+}) => {
+  if (!nombre_actividad || !fecha) {
+    return null;
+  }
+
+  const query = {
+    text: `
+        SELECT 
+          id_actividad,
+          nombre_actividad,
+          fecha_inicio,
+          creditos,
+          id_semestre
+        FROM actividad
+        WHERE activo = TRUE
+          AND LOWER(TRIM(nombre_actividad)) = LOWER(TRIM($1))
+          AND DATE(fecha_inicio) = DATE($2)
+        LIMIT 1
+      `,
+    values: [nombre_actividad, fecha],
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows[0] || null;
+  } catch (error) {
+    console.error("Error buscando actividad por nombre/fecha:", error);
+    throw error;
+  }
+};
+
+const crearActividadHistorica = async ({
+  nombre_actividad,
+  fecha_actividad,
+  creditos,
+  semestre,
+  id_creador,
+}) => {
+  if (!nombre_actividad || !fecha_actividad || !semestre) {
+    throw buildError(
+      "VALIDATION_ERROR",
+      "Datos insuficientes para crear actividad histórica",
+    );
+  }
+
+  const fecha = new Date(fecha_actividad);
+  if (Number.isNaN(fecha.getTime())) {
+    throw buildError(
+      "VALIDATION_ERROR",
+      "fecha_actividad inválida al crear actividad histórica",
+    );
+  }
+
+  try {
+    const resultadoSemestre = await db.query(
+      "SELECT buscar_o_crear_semestre($1) AS id_semestre",
+      [semestre],
+    );
+
+    const id_semestre = resultadoSemestre.rows[0]?.id_semestre;
+
+    const insertResult = await db.query(
+      `
+        INSERT INTO actividad (
+          nombre_actividad,
+          fecha_inicio,
+          fecha_fin,
+          lugar,
+          creditos,
+          id_creador,
+          id_semestre
+        )
+        VALUES ($1, $2, $2, $3, $4, $5, $6)
+        RETURNING id_actividad, creditos
+      `,
+      [
+        nombre_actividad,
+        fecha,
+        "Carga histórica",
+        creditos,
+        id_creador,
+        id_semestre,
+      ],
+    );
+
+    return insertResult.rows[0];
+  } catch (error) {
+    console.error("Error creando actividad histórica:", error);
+    throw error;
+  }
+};
+
 const actualizarEstudiante = async ({
   id_persona,
   dni,
@@ -1100,8 +1195,393 @@ const guardarAsistenciaEstudiante = async ({
   }
 };
 
-const cobrarPuntos = async ({ id_persona, puntos }) => {
-  if (!id_persona || !puntos) {
+const obtenerPersonaPorDni = async (dni) => {
+  if (!dni) {
+    return null;
+  }
+
+  const query = {
+    text: `
+        SELECT id_persona, dni, nombre_persona, apellido, rol, activo
+        FROM persona
+        WHERE dni = $1
+          AND activo = TRUE
+        LIMIT 1
+      `,
+    values: [dni],
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows[0] || null;
+  } catch (error) {
+    console.error("Error buscando persona por DNI:", error);
+    throw error;
+  }
+};
+
+const obtenerEstudiantePorDni = async (dni) => {
+  if (!dni) {
+    return null;
+  }
+
+  const query = {
+    text: `
+        SELECT 
+          e.id_estudiante,
+          e.id_persona,
+          e.credito_total,
+          e.cobro_credito,
+          e.id_nivel
+        FROM estudiante e
+        INNER JOIN persona p ON e.id_persona = p.id_persona
+        WHERE p.dni = $1
+          AND p.activo = TRUE
+          AND e.activo = TRUE
+      `,
+    values: [dni],
+  };
+
+  try {
+    const { rows } = await db.query(query);
+    return rows[0] || null;
+  } catch (error) {
+    console.error("Error buscando estudiante por DNI:", error);
+    throw error;
+  }
+};
+
+const actualizarNivelSiCorresponde = async ({ id_estudiante }) => {
+  const totalesResult = await db.query(
+    `
+      SELECT credito_total
+      FROM estudiante
+      WHERE id_estudiante = $1
+    `,
+    [id_estudiante],
+  );
+
+  const creditoTotal = Number(totalesResult.rows[0]?.credito_total || 0);
+  const nivelActual = await NivelModel.obtenerNivelPorCreditos({
+    creditos: creditoTotal,
+  });
+
+  if (nivelActual?.id_nivel) {
+    await db.query(
+      `
+        UPDATE estudiante
+        SET id_nivel = $1
+        WHERE id_estudiante = $2
+      `,
+      [nivelActual.id_nivel, id_estudiante],
+    );
+  }
+};
+
+const registrarAsistenciaHistorica = async ({
+  id_estudiante,
+  id_actividad,
+  creditos,
+  fecha,
+  comentario,
+  id_autor,
+  rol_autor,
+}) => {
+  if (!id_estudiante || !id_actividad) {
+    throw buildError(
+      "VALIDATION_ERROR",
+      "id_estudiante e id_actividad son requeridos",
+    );
+  }
+
+  const creditosNumber = Number(creditos) || 0;
+  const fechaAsistencia = fecha ? new Date(fecha) : new Date();
+
+  await db.query("BEGIN");
+
+  try {
+    const asistenciaResult = await db.query(
+      `
+        SELECT activo
+        FROM asiste
+        WHERE id_estudiante = $1
+          AND id_actividad = $2
+        FOR UPDATE
+      `,
+      [id_estudiante, id_actividad],
+    );
+
+    let aplicarCreditos = false;
+
+    if (asistenciaResult.rows.length === 0) {
+      await db.query(
+        `
+          INSERT INTO asiste (
+            id_estudiante,
+            id_actividad,
+            fecha_asistencia,
+            activo
+          )
+          VALUES ($1, $2, $3, TRUE)
+        `,
+        [id_estudiante, id_actividad, fechaAsistencia],
+      );
+      aplicarCreditos = creditosNumber !== 0;
+    } else if (asistenciaResult.rows[0].activo === false) {
+      await db.query(
+        `
+          UPDATE asiste
+          SET activo = TRUE,
+              fecha_asistencia = $3
+          WHERE id_estudiante = $1
+            AND id_actividad = $2
+        `,
+        [id_estudiante, id_actividad, fechaAsistencia],
+      );
+      aplicarCreditos = creditosNumber !== 0;
+    } else {
+      throw buildError(
+        "ASISTENCIA_DUPLICADA",
+        "La asistencia ya fue registrada previamente para esta actividad",
+      );
+    }
+
+    if (aplicarCreditos) {
+      await db.query(
+        `
+          UPDATE estudiante
+          SET 
+            credito_total = COALESCE(credito_total, 0) + $1,
+            cobro_credito = COALESCE(cobro_credito, 0) + $1
+          WHERE id_estudiante = $2
+        `,
+        [creditosNumber, id_estudiante],
+      );
+      await actualizarNivelSiCorresponde({ id_estudiante });
+    }
+
+    if (aplicarCreditos) {
+      await db.query(
+        `
+          SELECT registrar_movimiento_credito(
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7
+          )
+        `,
+        [
+          id_estudiante,
+          "asistencia",
+          creditosNumber,
+          comentario || "Carga histórica",
+          id_actividad,
+          id_autor,
+          rol_autor,
+        ],
+      );
+    }
+
+    await db.query("COMMIT");
+  } catch (error) {
+    await db.query("ROLLBACK");
+    console.error("Error registrando asistencia histórica:", error);
+    throw error;
+  }
+};
+
+const registrarBonusHistorico = async ({
+  id_estudiante,
+  creditos,
+  comentario,
+  id_autor,
+  rol_autor,
+  id_actividad = null,
+}) => {
+  if (!id_estudiante || creditos === undefined) {
+    throw buildError(
+      "VALIDATION_ERROR",
+      "id_estudiante y creditos son requeridos para bonus histórico",
+    );
+  }
+
+  const creditosNumber = Number(creditos);
+  if (!Number.isFinite(creditosNumber) || creditosNumber <= 0) {
+    throw buildError(
+      "VALIDATION_ERROR",
+      "creditos debe ser mayor a 0 para bonus histórico",
+    );
+  }
+
+  await db.query("BEGIN");
+
+  try {
+    await db.query(
+      `
+        UPDATE estudiante
+        SET 
+          credito_total = COALESCE(credito_total, 0) + $1,
+          cobro_credito = COALESCE(cobro_credito, 0) + $1
+        WHERE id_estudiante = $2
+      `,
+      [creditosNumber, id_estudiante],
+    );
+
+    await actualizarNivelSiCorresponde({ id_estudiante });
+
+    await db.query(
+      `
+        SELECT registrar_movimiento_credito(
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7
+        )
+      `,
+      [
+        id_estudiante,
+        "bonus",
+        creditosNumber,
+        comentario || "Bonus histórico",
+        id_actividad,
+        id_autor,
+        rol_autor,
+      ],
+    );
+
+    await db.query("COMMIT");
+  } catch (error) {
+    await db.query("ROLLBACK");
+    console.error("Error registrando bonus histórico:", error);
+    throw error;
+  }
+};
+
+const bonificarPuntos = async ({
+  id_persona,
+  puntos,
+  motivo,
+  id_actividad,
+  id_autor,
+  rol_autor,
+}) => {
+  if (!id_persona || !puntos || !motivo || !id_autor || !rol_autor) {
+    throw buildError("VALIDATION_ERROR", "Datos insuficientes para bonificar");
+  }
+
+  const puntosNumber = Number(puntos);
+  if (!Number.isFinite(puntosNumber) || puntosNumber <= 0) {
+    throw buildError(
+      "VALIDATION_ERROR",
+      "puntos debe ser un entero mayor a 0",
+    );
+  }
+
+  if (id_actividad !== undefined && id_actividad !== null) {
+    const existe = await actividadExiste({ id_actividad: Number(id_actividad) });
+    if (!existe) {
+      throw buildError(
+        "ACTIVIDAD_NO_ENCONTRADA",
+        "La actividad especificada no existe",
+      );
+    }
+  }
+
+  await db.query("BEGIN");
+
+  try {
+    const estudianteResult = await db.query(
+      `
+        SELECT 
+          e.id_estudiante,
+          COALESCE(e.credito_total, 0) AS credito_total,
+          COALESCE(e.cobro_credito, 0) AS cobro_credito
+        FROM estudiante e
+        INNER JOIN persona p ON e.id_persona = p.id_persona
+        WHERE e.id_persona = $1
+          AND e.activo = TRUE
+          AND p.activo = TRUE
+        FOR UPDATE
+      `,
+      [id_persona],
+    );
+
+    if (estudianteResult.rows.length === 0) {
+      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+    }
+
+    const estudiante = estudianteResult.rows[0];
+
+    const updateResult = await db.query(
+      `
+        UPDATE estudiante
+        SET
+          credito_total = COALESCE(credito_total, 0) + $1,
+          cobro_credito = COALESCE(cobro_credito, 0) + $1
+        WHERE id_estudiante = $2
+        RETURNING credito_total, cobro_credito
+      `,
+      [puntosNumber, estudiante.id_estudiante],
+    );
+
+    await actualizarNivelSiCorresponde({
+      id_estudiante: estudiante.id_estudiante,
+    });
+
+    const movimientoResult = await db.query(
+      `
+        SELECT registrar_movimiento_credito(
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7
+        ) AS id_movimiento
+      `,
+      [
+        estudiante.id_estudiante,
+        "bonus",
+        Math.abs(puntosNumber),
+        motivo,
+        id_actividad || null,
+        id_autor,
+        rol_autor,
+      ],
+    );
+
+    await db.query("COMMIT");
+    return {
+      id_persona,
+      id_estudiante: estudiante.id_estudiante,
+      credito_total: updateResult.rows[0].credito_total,
+      cobro_credito: updateResult.rows[0].cobro_credito,
+      id_movimiento: movimientoResult.rows[0]?.id_movimiento || null,
+    };
+  } catch (error) {
+    await db.query("ROLLBACK");
+    if (!error.code) {
+      console.error("Error bonificando puntos:", error);
+    }
+    throw error;
+  }
+};
+
+const cobrarPuntos = async ({
+  id_persona,
+  puntos,
+  motivo,
+  idCobrador,
+  rolCobrador,
+}) => {
+  if (!id_persona || !puntos || !motivo || !idCobrador || !rolCobrador) {
     throw buildError("VALIDATION_ERROR", "Datos insuficientes para cobrar");
   }
 
@@ -1143,17 +1623,45 @@ const cobrarPuntos = async ({ id_persona, puntos }) => {
           credito_total = GREATEST(COALESCE(credito_total, 0) - $1, 0),
           cobro_credito = GREATEST(COALESCE(cobro_credito, 0) - $1, 0)
         WHERE id_estudiante = $2
-        RETURNING credito_total, cobro_credito
+        RETURNING id_estudiante, credito_total, cobro_credito
       `,
       [puntos, estudiante.id_estudiante],
+    );
+
+    if (updateResult.rows.length === 0) {
+      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+    }
+
+    const movimientoResult = await db.query(
+      `
+        SELECT registrar_movimiento_credito(
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7
+        ) AS id_movimiento
+      `,
+      [
+        updateResult.rows[0].id_estudiante,
+        "cobro",
+        -Math.abs(puntos),
+        motivo,
+        null,
+        idCobrador,
+        rolCobrador,
+      ],
     );
 
     await db.query("COMMIT");
     return {
       id_persona,
-      id_estudiante: estudiante.id_estudiante,
+      id_estudiante: updateResult.rows[0].id_estudiante,
       credito_total: updateResult.rows[0].credito_total,
       cobro_credito: updateResult.rows[0].cobro_credito,
+      id_movimiento: movimientoResult.rows[0]?.id_movimiento || null,
     };
   } catch (error) {
     await db.query("ROLLBACK");
@@ -1162,6 +1670,87 @@ const cobrarPuntos = async ({ id_persona, puntos }) => {
     }
     throw error;
   }
+};
+
+const listarHistorialMovimientos = async (filters = {}) => {
+  const {
+    id_estudiante,
+    dni,
+    tipo_movimiento,
+    fecha_inicio,
+    fecha_fin,
+    limit = 50,
+    offset = 0,
+  } = filters;
+
+  const params = [];
+  const conditions = [];
+
+  let estudianteId = id_estudiante ? Number(id_estudiante) : undefined;
+
+  if (!estudianteId && dni) {
+    const estudiante = await obtenerEstudiantePorDni(dni);
+    if (!estudiante) {
+      return [];
+    }
+    estudianteId = estudiante.id_estudiante;
+  }
+
+  if (estudianteId) {
+    params.push(estudianteId);
+    conditions.push(`hmc.id_estudiante = $${params.length}`);
+  }
+
+  if (tipo_movimiento) {
+    params.push(tipo_movimiento);
+    conditions.push(`hmc.tipo_movimiento = $${params.length}`);
+  }
+
+  if (fecha_inicio) {
+    params.push(fecha_inicio);
+    conditions.push(`hmc.created_at >= $${params.length}`);
+  }
+
+  if (fecha_fin) {
+    params.push(fecha_fin);
+    conditions.push(`hmc.created_at <= $${params.length}`);
+  }
+
+  const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 200) : 50;
+  const safeOffset = Number(offset) >= 0 ? Number(offset) : 0;
+
+  params.push(safeLimit);
+  params.push(safeOffset);
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const query = `
+    SELECT 
+      hmc.id_movimiento,
+      hmc.id_estudiante,
+      p_est.dni AS dni_estudiante,
+      p_est.nombre_persona || ' ' || p_est.apellido AS estudiante,
+      hmc.tipo_movimiento,
+      hmc.creditos,
+      hmc.motivo,
+      act.nombre_actividad,
+      p_autor.nombre_persona || ' ' || p_autor.apellido AS autor,
+      hmc.rol_autor,
+      hmc.created_at
+    FROM historial_movimiento_creditos hmc
+    INNER JOIN estudiante e ON hmc.id_estudiante = e.id_estudiante
+    INNER JOIN persona p_est ON e.id_persona = p_est.id_persona
+    INNER JOIN persona p_autor ON hmc.id_autor = p_autor.id_persona
+    LEFT JOIN actividad act ON hmc.id_actividad = act.id_actividad
+    ${whereClause}
+    ORDER BY hmc.created_at DESC
+    LIMIT $${params.length - 1}
+    OFFSET $${params.length}
+  `;
+
+  const { rows } = await db.query(query, params);
+  return rows;
 };
 
 const listarSemestres = async () => {
@@ -1202,10 +1791,18 @@ const AdminModel = {
   listarEstudiantesParaExport,
   listarActividadesParaExport,
   listarActividadesPorSemestre,
+  obtenerActividadPorNombreFecha,
+  crearActividadHistorica,
   listarAsistenciaPorActividad,
   obtenerRegistroAsistencia,
   guardarAsistenciaEstudiante,
+  registrarAsistenciaHistorica,
+  registrarBonusHistorico,
+  bonificarPuntos,
   cobrarPuntos,
+  obtenerPersonaPorDni,
+  obtenerEstudiantePorDni,
+  listarHistorialMovimientos,
   listarSemestres,
 };
 
