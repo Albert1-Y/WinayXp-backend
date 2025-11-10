@@ -1616,7 +1616,6 @@ const cobrarPuntos = async ({
       `
         UPDATE estudiante
         SET
-          credito_total = GREATEST(COALESCE(credito_total, 0) - $1, 0),
           cobro_credito = GREATEST(COALESCE(cobro_credito, 0) - $1, 0)
         WHERE id_estudiante = $2
         RETURNING id_estudiante, credito_total, cobro_credito
