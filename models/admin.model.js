@@ -1052,7 +1052,13 @@ const guardarAsistenciaEstudiante = async ({
   id_estudiante,
   id_actividad,
   estado,
+  id_autor,
+  rol_autor,
 }) => {
+  if (!id_autor || !rol_autor) {
+    throw new Error("DATOS_AUTOR_REQUERIDOS");
+  }
+
   await db.query("BEGIN");
 
   try {
@@ -1166,6 +1172,35 @@ const guardarAsistenciaEstudiante = async ({
       await db.query(
         "UPDATE estudiante SET id_nivel = $1 WHERE id_estudiante = $2",
         [nivelActual.id_nivel, id_estudiante],
+      );
+    }
+
+    if (deltaCreditos !== 0) {
+      const motivoMovimiento = estado
+        ? "Asistencia registrada"
+        : "Asistencia revertida";
+
+      await db.query(
+        `
+          SELECT registrar_movimiento_credito(
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7
+          )
+        `,
+        [
+          id_estudiante,
+          "asistencia",
+          deltaCreditos,
+          motivoMovimiento,
+          id_actividad,
+          id_autor,
+          rol_autor,
+        ],
       );
     }
 

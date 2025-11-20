@@ -18,6 +18,7 @@ const DatosEstudianteInit = async ({ id_persona }) => {
                 c.nombre_carrera,
                 n.id_nivel AS nivel_id,
                 n.nombre_nivel,
+                n.descripcion AS descripcion_nivel,
                 n.nombre_imagen,
                 n.rango_inicio,
                 n.rango_fin
@@ -104,7 +105,7 @@ const marcarNivelVisto = async ({ id_estudiante, id_persona, id_nivel }) => {
     text: `
             UPDATE estudiante
             SET ultimo_nivel_visto = GREATEST(COALESCE(ultimo_nivel_visto, 0), $${nivelIndex})
-            WHERE ${filtros.join(" AND ")}
+            WHERE ${filtros.join(' AND ')}
             RETURNING ultimo_nivel_visto
         `,
     values: valores,

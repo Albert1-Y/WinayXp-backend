@@ -8,7 +8,8 @@ const obtenerNivelPorCreditos = async ({ creditos }) => {
                 nombre_nivel,
                 rango_inicio,
                 rango_fin,
-                nombre_imagen
+                nombre_imagen,
+                descripcion
             FROM niveles
             WHERE rango_inicio <= $1
               AND (rango_fin IS NULL OR rango_fin >= $1)
@@ -39,7 +40,8 @@ const listarNivelesPendientes = async ({ desde = 0, hasta }) => {
                 nombre_nivel,
                 rango_inicio,
                 rango_fin,
-                nombre_imagen
+                nombre_imagen,
+                descripcion
             FROM niveles
             WHERE id_nivel > $1 AND id_nivel <= $2
             ORDER BY id_nivel

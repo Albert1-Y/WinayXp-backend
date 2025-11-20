@@ -225,6 +225,8 @@ const actualizarAsistenciaEstudiante = async (req, res) => {
         id_estudiante: estudianteId,
         id_actividad: idActividad,
         estado: estadoNormalizado,
+        id_autor: req.id_persona,
+        rol_autor: req.rol,
       });
 
     if (!asistencia) {
