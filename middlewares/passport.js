@@ -18,15 +18,8 @@ passport.use(
       //console.log('Email recibido:', email);
       //console.log('Usuario encontrado:', user);
       if (!user) {
-        // Solo crear si no existe
-        user = await UserModel.createPersona({
-          nombre_persona,
-          email,
-          rol: "estudiante",
-        });
-        // Usuario creado pero inactivo
         return done(null, false, {
-          message: "Usuario creado. Contacta al administrador para acceso.",
+          message: "Usuario no registrado. Solicita acceso al administrador.",
         });
       }
       if (!user.activo) {
