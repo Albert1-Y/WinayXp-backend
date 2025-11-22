@@ -1,5 +1,5 @@
-const { db } = require("../database/connection.database.js");
-const { NivelModel } = require("./nivel.model.js");
+const { db } = require('../database/connection.database.js');
+const { NivelModel } = require('./nivel.model.js');
 
 const buildError = (code, message) => {
   const error = new Error(message);
@@ -7,14 +7,7 @@ const buildError = (code, message) => {
   return error;
 };
 
-const creaPersona = async ({
-  dni,
-  email,
-  password,
-  nombre_persona,
-  apellido,
-  rol,
-}) => {
+const creaPersona = async ({ dni, email, password, nombre_persona, apellido, rol }) => {
   const query = {
     text: `
        
@@ -87,7 +80,7 @@ const creaEstudiante = async ({
       password,
       nombre_persona,
       apellido,
-      rol: "estudiante",
+      rol: 'estudiante',
     });
 
     const id_carrera = await obtenerOCrearCarreraPorNombre(carrera);
@@ -103,7 +96,7 @@ const creaEstudiante = async ({
     await db.query(estudianteQuery);
     return true;
   } catch (error) {
-    console.error("Error al crear estudiante:", error);
+    console.error('Error al crear estudiante:', error);
     return false;
   }
 };
@@ -117,10 +110,9 @@ const creaActividad = async ({
   semestre,
 }) => {
   try {
-    const resultadoSemestre = await db.query(
-      "SELECT buscar_o_crear_semestre($1) AS id_semestre",
-      [semestre],
-    );
+    const resultadoSemestre = await db.query('SELECT buscar_o_crear_semestre($1) AS id_semestre', [
+      semestre,
+    ]);
 
     const id_semestre = resultadoSemestre.rows[0].id_semestre;
 
@@ -140,21 +132,13 @@ const creaActividad = async ({
                     id_actividad, nombre_actividad, fecha_inicio, 
                     fecha_fin, lugar, creditos, id_creador, id_semestre, activo
             `,
-      values: [
-        nombre_actividad,
-        fecha_inicio,
-        fecha_fin,
-        lugar,
-        creditos,
-        idPersona,
-        id_semestre,
-      ],
+      values: [nombre_actividad, fecha_inicio, fecha_fin, lugar, creditos, idPersona, id_semestre],
     };
 
     const { rows } = await db.query(query);
     return rows[0];
   } catch (error) {
-    console.error("Error al crear la actividad:", error);
+    console.error('Error al crear la actividad:', error);
     throw error;
   }
 };
@@ -168,7 +152,7 @@ const actualizarActividad = async ({
   fecha_fin,
 }) => {
   if (!id_actividad) {
-    throw new Error("id_actividad es requerido");
+    throw new Error('id_actividad es requerido');
   }
 
   const updates = [];
@@ -182,20 +166,20 @@ const actualizarActividad = async ({
   };
 
   if (nombre_actividad !== undefined) {
-    pushUpdate("nombre_actividad", nombre_actividad);
+    pushUpdate('nombre_actividad', nombre_actividad);
   }
 
   if (lugar !== undefined) {
-    pushUpdate("lugar", lugar);
+    pushUpdate('lugar', lugar);
   }
 
   if (creditos !== undefined) {
-    pushUpdate("creditos", creditos);
+    pushUpdate('creditos', creditos);
   }
 
   const normalizarFecha = (valor) => {
     if (valor === undefined) return undefined;
-    if (valor === null || valor === "") return null;
+    if (valor === null || valor === '') return null;
     const fecha = new Date(valor);
     if (Number.isNaN(fecha.getTime())) {
       return null;
@@ -205,23 +189,22 @@ const actualizarActividad = async ({
 
   const fechaInicioNormalizada = normalizarFecha(fecha_inicio);
   if (fecha_inicio !== undefined) {
-    pushUpdate("fecha_inicio", fechaInicioNormalizada);
+    pushUpdate('fecha_inicio', fechaInicioNormalizada);
   }
 
   const fechaFinNormalizada = normalizarFecha(fecha_fin);
   if (fecha_fin !== undefined) {
-    pushUpdate("fecha_fin", fechaFinNormalizada);
+    pushUpdate('fecha_fin', fechaFinNormalizada);
   }
 
   if (semestre !== undefined && semestre !== null) {
-    if (typeof semestre === "string" && semestre.trim().length > 0) {
-      const { rows } = await db.query(
-        "SELECT buscar_o_crear_semestre($1) AS id_semestre",
-        [semestre.trim()],
-      );
+    if (typeof semestre === 'string' && semestre.trim().length > 0) {
+      const { rows } = await db.query('SELECT buscar_o_crear_semestre($1) AS id_semestre', [
+        semestre.trim(),
+      ]);
       const idSemestre = rows[0]?.id_semestre || null;
       if (idSemestre !== null) {
-        pushUpdate("id_semestre", idSemestre);
+        pushUpdate('id_semestre', idSemestre);
       }
     }
   }
@@ -240,7 +223,7 @@ const actualizarActividad = async ({
         FROM actividad a
         LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
         WHERE a.id_actividad = $1`,
-      [id_actividad],
+      [id_actividad]
     );
     return refresco.rows[0] || null;
   }
@@ -248,7 +231,7 @@ const actualizarActividad = async ({
   const updateQuery = {
     text: `
             UPDATE actividad
-            SET ${updates.join(", ")}
+            SET ${updates.join(', ')}
             WHERE id_actividad = $1
             RETURNING 
               id_actividad, nombre_actividad, lugar, creditos, fecha_inicio, fecha_fin, id_semestre
@@ -275,14 +258,14 @@ const actualizarActividad = async ({
       FROM actividad a
       LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
       WHERE a.id_actividad = $1`,
-    [actualizado.id_actividad],
+    [actualizado.id_actividad]
   );
 
   return detalle.rows[0] || actualizado;
 };
 const dataAlumno = async ({ dni, id_persona }) => {
   try {
-    const condiciones = ["p.rol = 'estudiante'", "p.activo = TRUE"];
+    const condiciones = ["p.rol = 'estudiante'", 'p.activo = TRUE'];
     const valores = [];
 
     if (dni) {
@@ -317,7 +300,7 @@ const dataAlumno = async ({ dni, id_persona }) => {
             JOIN estudiante e ON p.id_persona = e.id_persona
             JOIN carrera c ON e.id_carrera = c.id_carrera
             LEFT JOIN niveles n ON e.id_nivel = n.id_nivel
-            WHERE ${condiciones.join(" AND ")}`,
+            WHERE ${condiciones.join(' AND ')}`,
       values: valores,
     };
 
@@ -329,7 +312,7 @@ const dataAlumno = async ({ dni, id_persona }) => {
 
     return resultado.rows[0];
   } catch (error) {
-    console.error("Error al consultar persona por DNI:", error);
+    console.error('Error al consultar persona por DNI:', error);
     throw error;
   }
 };
@@ -360,7 +343,7 @@ const obtenerActividadPorNombreFecha = async ({ nombre_actividad, fecha }) => {
     const { rows } = await db.query(query);
     return rows[0] || null;
   } catch (error) {
-    console.error("Error buscando actividad por nombre/fecha:", error);
+    console.error('Error buscando actividad por nombre/fecha:', error);
     throw error;
   }
 };
@@ -373,25 +356,18 @@ const crearActividadHistorica = async ({
   id_creador,
 }) => {
   if (!nombre_actividad || !fecha_actividad || !semestre) {
-    throw buildError(
-      "VALIDATION_ERROR",
-      "Datos insuficientes para crear actividad histórica",
-    );
+    throw buildError('VALIDATION_ERROR', 'Datos insuficientes para crear actividad histórica');
   }
 
   const fecha = new Date(fecha_actividad);
   if (Number.isNaN(fecha.getTime())) {
-    throw buildError(
-      "VALIDATION_ERROR",
-      "fecha_actividad inválida al crear actividad histórica",
-    );
+    throw buildError('VALIDATION_ERROR', 'fecha_actividad inválida al crear actividad histórica');
   }
 
   try {
-    const resultadoSemestre = await db.query(
-      "SELECT buscar_o_crear_semestre($1) AS id_semestre",
-      [semestre],
-    );
+    const resultadoSemestre = await db.query('SELECT buscar_o_crear_semestre($1) AS id_semestre', [
+      semestre,
+    ]);
 
     const id_semestre = resultadoSemestre.rows[0]?.id_semestre;
 
@@ -409,19 +385,12 @@ const crearActividadHistorica = async ({
         VALUES ($1, $2, $2, $3, $4, $5, $6)
         RETURNING id_actividad, creditos
       `,
-      [
-        nombre_actividad,
-        fecha,
-        "Carga histórica",
-        creditos,
-        id_creador,
-        id_semestre,
-      ],
+      [nombre_actividad, fecha, 'Carga histórica', creditos, id_creador, id_semestre]
     );
 
     return insertResult.rows[0];
   } catch (error) {
-    console.error("Error creando actividad histórica:", error);
+    console.error('Error creando actividad histórica:', error);
     throw error;
   }
 };
@@ -436,10 +405,10 @@ const actualizarEstudiante = async ({
   semestre,
 }) => {
   if (!id_persona) {
-    throw buildError("VALIDATION_ERROR", "id_persona es requerido");
+    throw buildError('VALIDATION_ERROR', 'id_persona es requerido');
   }
 
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const estudianteResult = await db.query(
@@ -453,11 +422,11 @@ const actualizarEstudiante = async ({
           AND p.rol = 'estudiante'
         FOR UPDATE
       `,
-      [id_persona],
+      [id_persona]
     );
 
     if (estudianteResult.rows.length === 0) {
-      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+      throw buildError('ESTUDIANTE_NO_ENCONTRADO', 'Estudiante no encontrado');
     }
 
     const personaUpdates = [];
@@ -470,13 +439,13 @@ const actualizarEstudiante = async ({
     };
 
     if (dni !== undefined) {
-      pushPersonaUpdate("dni", dni);
+      pushPersonaUpdate('dni', dni);
     }
     if (nombre_persona !== undefined) {
-      pushPersonaUpdate("nombre_persona", nombre_persona);
+      pushPersonaUpdate('nombre_persona', nombre_persona);
     }
     if (apellido !== undefined) {
-      pushPersonaUpdate("apellido", apellido);
+      pushPersonaUpdate('apellido', apellido);
     }
     if (email !== undefined) {
       const emailDuplicado = await db.query(
@@ -486,22 +455,22 @@ const actualizarEstudiante = async ({
           WHERE email = $1 AND id_persona <> $2 AND activo = TRUE
           LIMIT 1
         `,
-        [email, id_persona],
+        [email, id_persona]
       );
       if (emailDuplicado.rows.length > 0) {
-        throw buildError("EMAIL_DUPLICADO", "El email ya está registrado");
+        throw buildError('EMAIL_DUPLICADO', 'El email ya está registrado');
       }
-      pushPersonaUpdate("email", email);
+      pushPersonaUpdate('email', email);
     }
 
     if (personaUpdates.length > 0) {
       await db.query(
         `
           UPDATE persona
-          SET ${personaUpdates.join(", ")}
+          SET ${personaUpdates.join(', ')}
           WHERE id_persona = $1
         `,
-        personaValues,
+        personaValues
       );
     }
 
@@ -517,32 +486,32 @@ const actualizarEstudiante = async ({
     if (carrera !== undefined) {
       const id_carrera = await obtenerOCrearCarreraPorNombre(carrera);
       if (id_carrera) {
-        pushEstUpdate("id_carrera", id_carrera);
+        pushEstUpdate('id_carrera', id_carrera);
       }
     }
 
     if (semestre !== undefined) {
-      pushEstUpdate("semestre", semestre);
+      pushEstUpdate('semestre', semestre);
     }
 
     if (estudianteUpdates.length > 0) {
       await db.query(
         `
           UPDATE estudiante
-          SET ${estudianteUpdates.join(", ")}
+          SET ${estudianteUpdates.join(', ')}
           WHERE id_estudiante = $1
         `,
-        estudianteValues,
+        estudianteValues
       );
     }
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
     const actualizado = await dataAlumno({ id_persona });
     return actualizado;
   } catch (error) {
-    await db.query("ROLLBACK");
+    await db.query('ROLLBACK');
     if (!error.code) {
-      console.error("Error actualizando estudiante:", error.message);
+      console.error('Error actualizando estudiante:', error.message);
     }
     throw error;
   }
@@ -568,12 +537,12 @@ const obtenerEstudiantePorIdPersona = async ({ id_persona }) => {
     const { rows } = await db.query(query);
     return rows[0] || null;
   } catch (error) {
-    console.error("Error al obtener estudiante por persona:", error.message);
+    console.error('Error al obtener estudiante por persona:', error.message);
     return null;
   }
 };
 const DeleteAlumno = async ({ id_persona }) => {
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const deactivateEstudianteQuery = {
@@ -630,12 +599,12 @@ const DeleteAlumno = async ({ id_persona }) => {
 
     await db.query(deleteRefreshTokenQuery);
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
 
     return true;
   } catch (error) {
-    await db.query("ROLLBACK");
-    console.error("Error al desactivar estudiante y sus registros:", error);
+    await db.query('ROLLBACK');
+    console.error('Error al desactivar estudiante y sus registros:', error);
     return false;
   }
 };
@@ -655,7 +624,7 @@ const actividadExiste = async ({ id_actividad }) => {
     const { rows } = await db.query(query);
     return rows[0].existe;
   } catch (error) {
-    console.error("Error al verificar existencia de la actividad:", error);
+    console.error('Error al verificar existencia de la actividad:', error);
     return false;
   }
 };
@@ -678,12 +647,12 @@ const mostrarActividad = async ({ fecha_inicio, fecha_fin }) => {
     console.log(rows);
     return rows;
   } catch (error) {
-    console.error("Error al obtener actividades:", error);
+    console.error('Error al obtener actividades:', error);
     return [];
   }
 };
 const DeleteActividad = async ({ id_actividad }) => {
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const deactivateAsisteQuery = {
@@ -706,11 +675,11 @@ const DeleteActividad = async ({ id_actividad }) => {
     };
     await db.query(deactivateActividadQuery);
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
     return true;
   } catch (error) {
-    await db.query("ROLLBACK");
-    console.error("Error al desactivar la actividad:", error);
+    await db.query('ROLLBACK');
+    console.error('Error al desactivar la actividad:', error);
     return false;
   }
 };
@@ -743,7 +712,7 @@ const mostrarEstudiantes = async () => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error obteniendo datos de estudiantes:", error.message);
+    console.error('Error obteniendo datos de estudiantes:', error.message);
     return [];
   }
 };
@@ -766,13 +735,13 @@ const mostrarTutores = async () => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error obteniendo datos de tutores:", error.message);
+    console.error('Error obteniendo datos de tutores:', error.message);
     return [];
   }
 };
 const eliminarTutor = async ({ id_persona }) => {
   try {
-    await db.query("BEGIN");
+    await db.query('BEGIN');
 
     await db.query({
       text: `
@@ -793,12 +762,12 @@ const eliminarTutor = async ({ id_persona }) => {
       values: [id_persona],
     });
 
-    await db.query("COMMIT");
-    console.log("Tutor eliminado lógicamente.");
+    await db.query('COMMIT');
+    console.log('Tutor eliminado lógicamente.');
     return true;
   } catch (error) {
-    await db.query("ROLLBACK");
-    console.error("Error eliminando tutor:", error.message);
+    await db.query('ROLLBACK');
+    console.error('Error eliminando tutor:', error.message);
     return false;
   }
 };
@@ -817,22 +786,19 @@ const obtenerNombreSemestre = async (id_semestre) => {
     const { rows } = await db.query(query);
     return rows.length > 0 ? rows[0].semestre : null;
   } catch (error) {
-    console.error("Error obteniendo nombre de semestre:", error.message);
+    console.error('Error obteniendo nombre de semestre:', error.message);
     return null;
   }
 };
 
-const listarEstudiantesParaExport = async ({
-  idSemestre,
-  nombreSemestre,
-} = {}) => {
-  const filtros = ["p.activo = TRUE"];
+const listarEstudiantesParaExport = async ({ idSemestre, nombreSemestre } = {}) => {
+  const filtros = ['p.activo = TRUE'];
   const values = [];
 
   try {
     const semestreValores = [];
 
-    if (nombreSemestre && typeof nombreSemestre === "string") {
+    if (nombreSemestre && typeof nombreSemestre === 'string') {
       const literal = nombreSemestre.trim();
       if (literal) {
         semestreValores.push(literal);
@@ -860,11 +826,9 @@ const listarEstudiantesParaExport = async ({
         .map((valor) => valor.toLowerCase());
 
       if (normalizados.length > 0) {
-        const placeholders = normalizados.map(
-          (_, idx) => `$${values.length + idx + 1}`,
-        );
+        const placeholders = normalizados.map((_, idx) => `$${values.length + idx + 1}`);
         normalizados.forEach((valor) => values.push(valor));
-        filtros.push(`LOWER(e.semestre::text) IN (${placeholders.join(", ")})`);
+        filtros.push(`LOWER(e.semestre::text) IN (${placeholders.join(', ')})`);
       }
     }
 
@@ -884,7 +848,7 @@ const listarEstudiantesParaExport = async ({
                 INNER JOIN persona p ON e.id_persona = p.id_persona
                 LEFT JOIN carrera c ON e.id_carrera = c.id_carrera
                 LEFT JOIN niveles n ON e.id_nivel = n.id_nivel
-                WHERE ${filtros.join(" AND ")}
+                WHERE ${filtros.join(' AND ')}
                 ORDER BY 
                   CASE 
                     WHEN e.semestre IS NULL THEN 1
@@ -900,17 +864,14 @@ const listarEstudiantesParaExport = async ({
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error(
-      "Error obteniendo estudiantes para exportación:",
-      error.message,
-    );
+    console.error('Error obteniendo estudiantes para exportación:', error.message);
     return [];
   }
 };
 
 const listarActividadesParaExport = async ({ idSemestre }) => {
   const values = [];
-  const filtros = ["a.activo = TRUE"];
+  const filtros = ['a.activo = TRUE'];
 
   if (idSemestre && Number(idSemestre) !== 0) {
     values.push(Number(idSemestre));
@@ -933,7 +894,7 @@ const listarActividadesParaExport = async ({ idSemestre }) => {
             LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
             LEFT JOIN persona p ON a.id_creador = p.id_persona
             LEFT JOIN asiste asis ON asis.id_actividad = a.id_actividad
-            WHERE ${filtros.join(" AND ")}
+            WHERE ${filtros.join(' AND ')}
             GROUP BY a.id_actividad, s.semestre, p.nombre_persona, p.apellido
             ORDER BY a.fecha_inicio DESC
         `,
@@ -944,17 +905,14 @@ const listarActividadesParaExport = async ({ idSemestre }) => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error(
-      "Error obteniendo actividades para exportación:",
-      error.message,
-    );
+    console.error('Error obteniendo actividades para exportación:', error.message);
     return [];
   }
 };
 
 const listarActividadesPorSemestre = async ({ idSemestre }) => {
   const values = [];
-  const filtros = ["a.activo = TRUE"];
+  const filtros = ['a.activo = TRUE'];
 
   if (idSemestre && Number(idSemestre) > 0) {
     values.push(Number(idSemestre));
@@ -976,7 +934,7 @@ const listarActividadesPorSemestre = async ({ idSemestre }) => {
             FROM actividad a
             LEFT JOIN semestre s ON a.id_semestre = s.id_semestre
             LEFT JOIN asiste asis ON asis.id_actividad = a.id_actividad
-            WHERE ${filtros.join(" AND ")}
+            WHERE ${filtros.join(' AND ')}
             GROUP BY a.id_actividad, s.semestre
             ORDER BY a.fecha_inicio DESC
         `,
@@ -987,7 +945,7 @@ const listarActividadesPorSemestre = async ({ idSemestre }) => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error obteniendo actividades por semestre:", error.message);
+    console.error('Error obteniendo actividades por semestre:', error.message);
     return [];
   }
 };
@@ -1023,7 +981,7 @@ const listarAsistenciaPorActividad = async ({ idActividad }) => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error obteniendo asistencia por actividad:", error.message);
+    console.error('Error obteniendo asistencia por actividad:', error.message);
     return [];
   }
 };
@@ -1043,7 +1001,7 @@ const obtenerRegistroAsistencia = async ({ id_estudiante, id_actividad }) => {
     const { rows } = await db.query(query);
     return rows[0] || null;
   } catch (error) {
-    console.error("Error obteniendo registro de asistencia:", error.message);
+    console.error('Error obteniendo registro de asistencia:', error.message);
     return null;
   }
 };
@@ -1056,10 +1014,10 @@ const guardarAsistenciaEstudiante = async ({
   rol_autor,
 }) => {
   if (!id_autor || !rol_autor) {
-    throw new Error("DATOS_AUTOR_REQUERIDOS");
+    throw new Error('DATOS_AUTOR_REQUERIDOS');
   }
 
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const estudianteResult = await db.query(
@@ -1067,26 +1025,24 @@ const guardarAsistenciaEstudiante = async ({
          FROM estudiante
          WHERE id_estudiante = $1
          FOR UPDATE`,
-      [id_estudiante],
+      [id_estudiante]
     );
 
     if (estudianteResult.rows.length === 0) {
-      throw new Error("ESTUDIANTE_NO_ENCONTRADO");
+      throw new Error('ESTUDIANTE_NO_ENCONTRADO');
     }
 
-    const {
-      id_nivel: idNivelAnterior,
-      ultimo_nivel_visto: ultimoNivelVistoRaw,
-    } = estudianteResult.rows[0];
+    const { id_nivel: idNivelAnterior, ultimo_nivel_visto: ultimoNivelVistoRaw } =
+      estudianteResult.rows[0];
     const ultimoNivelVisto = Number(ultimoNivelVistoRaw || 0);
 
     const actividadResultado = await db.query(
-      "SELECT creditos FROM actividad WHERE id_actividad = $1",
-      [id_actividad],
+      'SELECT creditos FROM actividad WHERE id_actividad = $1',
+      [id_actividad]
     );
 
     if (actividadResultado.rows.length === 0) {
-      throw new Error("ACTIVIDAD_NO_ENCONTRADA");
+      throw new Error('ACTIVIDAD_NO_ENCONTRADA');
     }
 
     const creditosActividad = Number(actividadResultado.rows[0].creditos) || 0;
@@ -1096,7 +1052,7 @@ const guardarAsistenciaEstudiante = async ({
          FROM asiste
          WHERE id_estudiante = $1 AND id_actividad = $2
          FOR UPDATE`,
-      [id_estudiante, id_actividad],
+      [id_estudiante, id_actividad]
     );
 
     const registroActual = registroActualResult.rows[0] || null;
@@ -1131,7 +1087,7 @@ const guardarAsistenciaEstudiante = async ({
             VALUES ($1, $2, NOW(), TRUE)
             RETURNING id_estudiante, id_actividad, fecha_asistencia, activo
         `,
-        [id_estudiante, id_actividad],
+        [id_estudiante, id_actividad]
       );
       asistenciaRow = insertResult.rows[0] || null;
       deltaCreditos = creditosActividad;
@@ -1144,7 +1100,7 @@ const guardarAsistenciaEstudiante = async ({
               credito_total = GREATEST(COALESCE(credito_total, 0) + $1, 0),
               cobro_credito = GREATEST(COALESCE(cobro_credito, 0) + $1, 0)
           WHERE id_estudiante = $2`,
-        [deltaCreditos, id_estudiante],
+        [deltaCreditos, id_estudiante]
       );
     }
 
@@ -1152,7 +1108,7 @@ const guardarAsistenciaEstudiante = async ({
       `SELECT credito_total, cobro_credito
          FROM estudiante
          WHERE id_estudiante = $1`,
-      [id_estudiante],
+      [id_estudiante]
     );
 
     const totales = totalesResult.rows[0] || {
@@ -1169,16 +1125,14 @@ const guardarAsistenciaEstudiante = async ({
       nivelActual.id_nivel &&
       nivelActual.id_nivel !== Number(idNivelAnterior || 0)
     ) {
-      await db.query(
-        "UPDATE estudiante SET id_nivel = $1 WHERE id_estudiante = $2",
-        [nivelActual.id_nivel, id_estudiante],
-      );
+      await db.query('UPDATE estudiante SET id_nivel = $1 WHERE id_estudiante = $2', [
+        nivelActual.id_nivel,
+        id_estudiante,
+      ]);
     }
 
     if (deltaCreditos !== 0) {
-      const motivoMovimiento = estado
-        ? "Asistencia registrada"
-        : "Asistencia revertida";
+      const motivoMovimiento = estado ? 'Asistencia registrada' : 'Asistencia revertida';
 
       await db.query(
         `
@@ -1194,13 +1148,13 @@ const guardarAsistenciaEstudiante = async ({
         `,
         [
           id_estudiante,
-          "asistencia",
+          'asistencia',
           deltaCreditos,
           motivoMovimiento,
           id_actividad,
           id_autor,
           rol_autor,
-        ],
+        ]
       );
     }
 
@@ -1212,7 +1166,7 @@ const guardarAsistenciaEstudiante = async ({
       });
     }
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
 
     return {
       asistencia: asistenciaRow,
@@ -1221,8 +1175,8 @@ const guardarAsistenciaEstudiante = async ({
       nivelesPendientes,
     };
   } catch (error) {
-    await db.query("ROLLBACK");
-    console.error("Error guardando asistencia:", error.message);
+    await db.query('ROLLBACK');
+    console.error('Error guardando asistencia:', error.message);
     throw error;
   }
 };
@@ -1247,7 +1201,7 @@ const obtenerPersonaPorDni = async (dni) => {
     const { rows } = await db.query(query);
     return rows[0] || null;
   } catch (error) {
-    console.error("Error buscando persona por DNI:", error);
+    console.error('Error buscando persona por DNI:', error);
     throw error;
   }
 };
@@ -1278,7 +1232,7 @@ const obtenerEstudiantePorDni = async (dni) => {
     const { rows } = await db.query(query);
     return rows[0] || null;
   } catch (error) {
-    console.error("Error buscando estudiante por DNI:", error);
+    console.error('Error buscando estudiante por DNI:', error);
     throw error;
   }
 };
@@ -1290,7 +1244,7 @@ const actualizarNivelSiCorresponde = async ({ id_estudiante }) => {
       FROM estudiante
       WHERE id_estudiante = $1
     `,
-    [id_estudiante],
+    [id_estudiante]
   );
 
   const creditoTotal = Number(totalesResult.rows[0]?.credito_total || 0);
@@ -1305,7 +1259,7 @@ const actualizarNivelSiCorresponde = async ({ id_estudiante }) => {
         SET id_nivel = $1
         WHERE id_estudiante = $2
       `,
-      [nivelActual.id_nivel, id_estudiante],
+      [nivelActual.id_nivel, id_estudiante]
     );
   }
 };
@@ -1320,16 +1274,13 @@ const registrarAsistenciaHistorica = async ({
   rol_autor,
 }) => {
   if (!id_estudiante || !id_actividad) {
-    throw buildError(
-      "VALIDATION_ERROR",
-      "id_estudiante e id_actividad son requeridos",
-    );
+    throw buildError('VALIDATION_ERROR', 'id_estudiante e id_actividad son requeridos');
   }
 
   const creditosNumber = Number(creditos) || 0;
   const fechaAsistencia = fecha ? new Date(fecha) : new Date();
 
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const asistenciaResult = await db.query(
@@ -1340,7 +1291,7 @@ const registrarAsistenciaHistorica = async ({
           AND id_actividad = $2
         FOR UPDATE
       `,
-      [id_estudiante, id_actividad],
+      [id_estudiante, id_actividad]
     );
 
     let aplicarCreditos = false;
@@ -1356,7 +1307,7 @@ const registrarAsistenciaHistorica = async ({
           )
           VALUES ($1, $2, $3, TRUE)
         `,
-        [id_estudiante, id_actividad, fechaAsistencia],
+        [id_estudiante, id_actividad, fechaAsistencia]
       );
       aplicarCreditos = creditosNumber !== 0;
     } else if (asistenciaResult.rows[0].activo === false) {
@@ -1368,13 +1319,13 @@ const registrarAsistenciaHistorica = async ({
           WHERE id_estudiante = $1
             AND id_actividad = $2
         `,
-        [id_estudiante, id_actividad, fechaAsistencia],
+        [id_estudiante, id_actividad, fechaAsistencia]
       );
       aplicarCreditos = creditosNumber !== 0;
     } else {
       throw buildError(
-        "ASISTENCIA_DUPLICADA",
-        "La asistencia ya fue registrada previamente para esta actividad",
+        'ASISTENCIA_DUPLICADA',
+        'La asistencia ya fue registrada previamente para esta actividad'
       );
     }
 
@@ -1387,7 +1338,7 @@ const registrarAsistenciaHistorica = async ({
             cobro_credito = COALESCE(cobro_credito, 0) + $1
           WHERE id_estudiante = $2
         `,
-        [creditosNumber, id_estudiante],
+        [creditosNumber, id_estudiante]
       );
       await actualizarNivelSiCorresponde({ id_estudiante });
     }
@@ -1407,20 +1358,20 @@ const registrarAsistenciaHistorica = async ({
         `,
         [
           id_estudiante,
-          "asistencia",
+          'asistencia',
           creditosNumber,
-          comentario || "Carga histórica",
+          comentario || 'Carga histórica',
           id_actividad,
           id_autor,
           rol_autor,
-        ],
+        ]
       );
     }
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
   } catch (error) {
-    await db.query("ROLLBACK");
-    console.error("Error registrando asistencia histórica:", error);
+    await db.query('ROLLBACK');
+    console.error('Error registrando asistencia histórica:', error);
     throw error;
   }
 };
@@ -1435,20 +1386,17 @@ const registrarBonusHistorico = async ({
 }) => {
   if (!id_estudiante || creditos === undefined) {
     throw buildError(
-      "VALIDATION_ERROR",
-      "id_estudiante y creditos son requeridos para bonus histórico",
+      'VALIDATION_ERROR',
+      'id_estudiante y creditos son requeridos para bonus histórico'
     );
   }
 
   const creditosNumber = Number(creditos);
   if (!Number.isFinite(creditosNumber) || creditosNumber <= 0) {
-    throw buildError(
-      "VALIDATION_ERROR",
-      "creditos debe ser mayor a 0 para bonus histórico",
-    );
+    throw buildError('VALIDATION_ERROR', 'creditos debe ser mayor a 0 para bonus histórico');
   }
 
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     await db.query(
@@ -1459,7 +1407,7 @@ const registrarBonusHistorico = async ({
           cobro_credito = COALESCE(cobro_credito, 0) + $1
         WHERE id_estudiante = $2
       `,
-      [creditosNumber, id_estudiante],
+      [creditosNumber, id_estudiante]
     );
 
     await actualizarNivelSiCorresponde({ id_estudiante });
@@ -1478,19 +1426,19 @@ const registrarBonusHistorico = async ({
       `,
       [
         id_estudiante,
-        "bonus",
+        'bonus',
         creditosNumber,
-        comentario || "Bonus histórico",
+        comentario || 'Bonus histórico',
         id_actividad,
         id_autor,
         rol_autor,
-      ],
+      ]
     );
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
   } catch (error) {
-    await db.query("ROLLBACK");
-    console.error("Error registrando bonus histórico:", error);
+    await db.query('ROLLBACK');
+    console.error('Error registrando bonus histórico:', error);
     throw error;
   }
 };
@@ -1504,12 +1452,12 @@ const bonificarPuntos = async ({
   rol_autor,
 }) => {
   if (!id_persona || !puntos || !motivo || !id_autor || !rol_autor) {
-    throw buildError("VALIDATION_ERROR", "Datos insuficientes para bonificar");
+    throw buildError('VALIDATION_ERROR', 'Datos insuficientes para bonificar');
   }
 
   const puntosNumber = Number(puntos);
   if (!Number.isFinite(puntosNumber) || puntosNumber <= 0) {
-    throw buildError("VALIDATION_ERROR", "puntos debe ser un entero mayor a 0");
+    throw buildError('VALIDATION_ERROR', 'puntos debe ser un entero mayor a 0');
   }
 
   if (id_actividad !== undefined && id_actividad !== null) {
@@ -1517,14 +1465,11 @@ const bonificarPuntos = async ({
       id_actividad: Number(id_actividad),
     });
     if (!existe) {
-      throw buildError(
-        "ACTIVIDAD_NO_ENCONTRADA",
-        "La actividad especificada no existe",
-      );
+      throw buildError('ACTIVIDAD_NO_ENCONTRADA', 'La actividad especificada no existe');
     }
   }
 
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const estudianteResult = await db.query(
@@ -1540,11 +1485,11 @@ const bonificarPuntos = async ({
           AND p.activo = TRUE
         FOR UPDATE
       `,
-      [id_persona],
+      [id_persona]
     );
 
     if (estudianteResult.rows.length === 0) {
-      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+      throw buildError('ESTUDIANTE_NO_ENCONTRADO', 'Estudiante no encontrado');
     }
 
     const estudiante = estudianteResult.rows[0];
@@ -1558,7 +1503,7 @@ const bonificarPuntos = async ({
         WHERE id_estudiante = $2
         RETURNING credito_total, cobro_credito
       `,
-      [puntosNumber, estudiante.id_estudiante],
+      [puntosNumber, estudiante.id_estudiante]
     );
 
     await actualizarNivelSiCorresponde({
@@ -1579,16 +1524,16 @@ const bonificarPuntos = async ({
       `,
       [
         estudiante.id_estudiante,
-        "bonus",
+        'bonus',
         Math.abs(puntosNumber),
         motivo,
         id_actividad || null,
         id_autor,
         rol_autor,
-      ],
+      ]
     );
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
     return {
       id_persona,
       id_estudiante: estudiante.id_estudiante,
@@ -1597,26 +1542,20 @@ const bonificarPuntos = async ({
       id_movimiento: movimientoResult.rows[0]?.id_movimiento || null,
     };
   } catch (error) {
-    await db.query("ROLLBACK");
+    await db.query('ROLLBACK');
     if (!error.code) {
-      console.error("Error bonificando puntos:", error);
+      console.error('Error bonificando puntos:', error);
     }
     throw error;
   }
 };
 
-const cobrarPuntos = async ({
-  id_persona,
-  puntos,
-  motivo,
-  idCobrador,
-  rolCobrador,
-}) => {
+const cobrarPuntos = async ({ id_persona, puntos, motivo, idCobrador, rolCobrador }) => {
   if (!id_persona || !puntos || !motivo || !idCobrador || !rolCobrador) {
-    throw buildError("VALIDATION_ERROR", "Datos insuficientes para cobrar");
+    throw buildError('VALIDATION_ERROR', 'Datos insuficientes para cobrar');
   }
 
-  await db.query("BEGIN");
+  await db.query('BEGIN');
 
   try {
     const estudianteResult = await db.query(
@@ -1632,19 +1571,16 @@ const cobrarPuntos = async ({
           AND p.activo = TRUE
         FOR UPDATE
       `,
-      [id_persona],
+      [id_persona]
     );
 
     if (estudianteResult.rows.length === 0) {
-      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+      throw buildError('ESTUDIANTE_NO_ENCONTRADO', 'Estudiante no encontrado');
     }
 
     const estudiante = estudianteResult.rows[0];
     if (Number(estudiante.cobro_credito) < puntos) {
-      throw buildError(
-        "SALDO_INSUFICIENTE",
-        "El estudiante no cuenta con saldo suficiente",
-      );
+      throw buildError('SALDO_INSUFICIENTE', 'El estudiante no cuenta con saldo suficiente');
     }
 
     const updateResult = await db.query(
@@ -1655,11 +1591,11 @@ const cobrarPuntos = async ({
         WHERE id_estudiante = $2
         RETURNING id_estudiante, credito_total, cobro_credito
       `,
-      [puntos, estudiante.id_estudiante],
+      [puntos, estudiante.id_estudiante]
     );
 
     if (updateResult.rows.length === 0) {
-      throw buildError("ESTUDIANTE_NO_ENCONTRADO", "Estudiante no encontrado");
+      throw buildError('ESTUDIANTE_NO_ENCONTRADO', 'Estudiante no encontrado');
     }
 
     const movimientoResult = await db.query(
@@ -1676,16 +1612,16 @@ const cobrarPuntos = async ({
       `,
       [
         updateResult.rows[0].id_estudiante,
-        "cobro",
+        'cobro',
         -Math.abs(puntos),
         motivo,
         null,
         idCobrador,
         rolCobrador,
-      ],
+      ]
     );
 
-    await db.query("COMMIT");
+    await db.query('COMMIT');
     return {
       id_persona,
       id_estudiante: updateResult.rows[0].id_estudiante,
@@ -1694,9 +1630,9 @@ const cobrarPuntos = async ({
       id_movimiento: movimientoResult.rows[0]?.id_movimiento || null,
     };
   } catch (error) {
-    await db.query("ROLLBACK");
+    await db.query('ROLLBACK');
     if (!error.code) {
-      console.error("Error cobrando puntos:", error.message);
+      console.error('Error cobrando puntos:', error.message);
     }
     throw error;
   }
@@ -1752,8 +1688,7 @@ const listarHistorialMovimientos = async (filters = {}) => {
   params.push(safeLimit);
   params.push(safeOffset);
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const query = `
     SELECT 
@@ -1798,7 +1733,7 @@ const listarSemestres = async () => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error obteniendo semestres:", error.message);
+    console.error('Error obteniendo semestres:', error.message);
     return [];
   }
 };

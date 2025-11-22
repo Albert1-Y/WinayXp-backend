@@ -1,11 +1,6 @@
-const { Router } = require("express");
-const {
-  EstudianteController,
-} = require("../controllers/estudiante.controller.js");
-const {
-  verifyToken,
-  verifyEstudiante,
-} = require("../middlewares/jwt.middlware.js");
+const { Router } = require('express');
+const { EstudianteController } = require('../controllers/estudiante.controller.js');
+const { verifyToken, verifyEstudiante } = require('../middlewares/jwt.middlware.js');
 
 const router = Router();
 
@@ -27,16 +22,8 @@ const router = Router();
  *       401:
  *         description: Usuario no autenticado
  */
-router.get(
-  "/InitEstudiante",
-  verifyToken,
-  verifyEstudiante,
-  EstudianteController.InitEstudiante,
-);
-router.get(
-  "/TopEstudiantesCarrera",
-  EstudianteController.TopEstudiantesCarrera,
-);
+router.get('/InitEstudiante', verifyToken, verifyEstudiante, EstudianteController.InitEstudiante);
+router.get('/TopEstudiantesCarrera', EstudianteController.TopEstudiantesCarrera);
 /**
  * @swagger
  * /api/estudiante/getActividadesAsistidas:
@@ -80,10 +67,10 @@ router.get(
  *         description: No autorizado
  */
 router.get(
-  "/getActividadesAsistidas",
+  '/getActividadesAsistidas',
   verifyToken,
   verifyEstudiante,
-  EstudianteController.getActividadesAsistidas,
+  EstudianteController.getActividadesAsistidas
 );
 
 /**
@@ -113,17 +100,12 @@ router.get(
  *         description: Parámetros inválidos
  */
 router.put(
-  "/confirmarNivel",
+  '/confirmarNivel',
   verifyToken,
   verifyEstudiante,
-  EstudianteController.confirmarNivelesVistos,
+  EstudianteController.confirmarNivelesVistos
 );
 
-router.get(
-  "/niveles",
-  verifyToken,
-  verifyEstudiante,
-  EstudianteController.listarNiveles,
-);
+router.get('/niveles', verifyToken, verifyEstudiante, EstudianteController.listarNiveles);
 
 module.exports = router;

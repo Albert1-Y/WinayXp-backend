@@ -1,17 +1,8 @@
-const { Router } = require("express");
-const {
-  AdminController,
-  AdminSharedController,
-} = require("../controllers/admin.controller.js");
-const {
-  AdminActividadController,
-} = require("../controllers/admin.controller.actividad.js");
-const {
-  verifyAdmin,
-  verifyAdminTutor,
-  verifyToken,
-} = require("../middlewares/jwt.middlware.js");
-const { upload } = require("../middlewares/upload.middleware.js");
+const { Router } = require('express');
+const { AdminController, AdminSharedController } = require('../controllers/admin.controller.js');
+const { AdminActividadController } = require('../controllers/admin.controller.actividad.js');
+const { verifyAdmin, verifyAdminTutor, verifyToken } = require('../middlewares/jwt.middlware.js');
+const { upload } = require('../middlewares/upload.middleware.js');
 
 const router = Router();
 
@@ -33,12 +24,7 @@ const router = Router();
  *       403:
  *         description: No autorizado
  */
-router.get(
-  "/init",
-  verifyToken,
-  verifyAdminTutor,
-  AdminSharedController.initAdminTutor,
-);
+router.get('/init', verifyToken, verifyAdminTutor, AdminSharedController.initAdminTutor);
 
 //REGISTRO DE ADMIN Y TUTOR
 /**
@@ -74,12 +60,7 @@ router.get(
  *       403:
  *         description: No autorizado
  */
-router.post(
-  "/registerAT",
-  verifyToken,
-  verifyAdmin,
-  AdminController.register_Admin_tutor,
-);
+router.post('/registerAT', verifyToken, verifyAdmin, AdminController.register_Admin_tutor);
 
 //REGISTER ESTUDIANTE
 /**
@@ -116,18 +97,13 @@ router.post(
  *       403:
  *         description: No autorizado
  */
-router.post(
-  "/registerE",
-  verifyToken,
-  verifyAdminTutor,
-  AdminSharedController.registeEstudiante,
-);
+router.post('/registerE', verifyToken, verifyAdminTutor, AdminSharedController.registeEstudiante);
 
 router.put(
-  "/ActulizarEstudiante",
+  '/ActulizarEstudiante',
   verifyToken,
   verifyAdmin,
-  AdminSharedController.actualizarEstudiante,
+  AdminSharedController.actualizarEstudiante
 );
 
 /**
@@ -163,7 +139,7 @@ router.put(
  *       403:
  *         description: No autorizado
  */
-router.post("/registerME", AdminSharedController.registerMultipleEstudiantes);
+router.post('/registerME', AdminSharedController.registerMultipleEstudiantes);
 
 //crear actividad admin-funcion compartida con tutor
 /**
@@ -203,10 +179,10 @@ router.post("/registerME", AdminSharedController.registerMultipleEstudiantes);
  *         description: No autorizado
  */
 router.post(
-  "/crearActividad",
+  '/crearActividad',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.crearActividad,
+  AdminActividadController.crearActividad
 );
 
 /**
@@ -238,10 +214,10 @@ router.post(
  *         description: No autorizado
  */
 router.get(
-  "/DatosEstudiante",
+  '/DatosEstudiante',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.DatosEstudiante,
+  AdminSharedController.DatosEstudiante
 );
 
 /**
@@ -267,10 +243,10 @@ router.get(
  *         description: No autorizado
  */
 router.delete(
-  "/EliminarEstudiante",
+  '/EliminarEstudiante',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.DeleteEstudiante,
+  AdminSharedController.DeleteEstudiante
 );
 
 /**
@@ -314,12 +290,7 @@ router.delete(
  *       404:
  *         description: Estudiante no encontrado.
  */
-router.put(
-  "/CobrarPuntos",
-  verifyToken,
-  verifyAdminTutor,
-  AdminSharedController.cobrarPuntos,
-);
+router.put('/CobrarPuntos', verifyToken, verifyAdminTutor, AdminSharedController.cobrarPuntos);
 
 /**
  * @swagger
@@ -363,10 +334,10 @@ router.put(
  *         description: Estudiante o actividad no encontrada.
  */
 router.post(
-  "/BonificarPuntos",
+  '/BonificarPuntos',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.bonificarPuntos,
+  AdminSharedController.bonificarPuntos
 );
 
 /**
@@ -427,10 +398,10 @@ router.post(
  *         description: No autorizado.
  */
 router.get(
-  "/HistorialMovimientos",
+  '/HistorialMovimientos',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.listarHistorialMovimientos,
+  AdminSharedController.listarHistorialMovimientos
 );
 
 /**
@@ -456,10 +427,10 @@ router.get(
  *         description: No autorizado
  */
 router.delete(
-  "/EliminarActividad",
+  '/EliminarActividad',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.DeleteActividad,
+  AdminActividadController.DeleteActividad
 );
 
 /**
@@ -491,10 +462,10 @@ router.delete(
  *         description: No autorizado
  */
 router.get(
-  "/MostrarActividad",
+  '/MostrarActividad',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.MostrarActividad,
+  AdminActividadController.MostrarActividad
 );
 
 /**
@@ -539,10 +510,10 @@ router.get(
  *         description: Actividad no encontrada
  */
 router.put(
-  "/ActualizarActividad",
+  '/ActualizarActividad',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.actualizarActividad,
+  AdminActividadController.actualizarActividad
 );
 
 /**
@@ -595,10 +566,10 @@ router.put(
  *         description: No autorizado
  */
 router.get(
-  "/ActividadesPorSemestre",
+  '/ActividadesPorSemestre',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.obtenerActividadesPorSemestre,
+  AdminActividadController.obtenerActividadesPorSemestre
 );
 
 /**
@@ -652,10 +623,10 @@ router.get(
  *         description: No autorizado
  */
 router.get(
-  "/AsistenciaActividad",
+  '/AsistenciaActividad',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.obtenerAsistenciaActividad,
+  AdminActividadController.obtenerAsistenciaActividad
 );
 
 /**
@@ -727,10 +698,10 @@ router.get(
  *         description: Estudiante no encontrado
  */
 router.put(
-  "/AsistenciaEstudiante",
+  '/AsistenciaEstudiante',
   verifyToken,
   verifyAdminTutor,
-  AdminActividadController.actualizarAsistenciaEstudiante,
+  AdminActividadController.actualizarAsistenciaEstudiante
 );
 
 /**
@@ -756,12 +727,7 @@ router.put(
  *       403:
  *         description: No autorizado
  */
-router.get(
-  "/verifyAT",
-  verifyToken,
-  verifyAdminTutor,
-  AdminSharedController.verifyGET,
-);
+router.get('/verifyAT', verifyToken, verifyAdminTutor, AdminSharedController.verifyGET);
 
 /**
  * @swagger
@@ -786,12 +752,7 @@ router.get(
  *       403:
  *         description: No autorizado
  */
-router.get(
-  "/verifyA",
-  verifyToken,
-  verifyAdmin,
-  AdminSharedController.verifyGET,
-);
+router.get('/verifyA', verifyToken, verifyAdmin, AdminSharedController.verifyGET);
 
 /**
  * @swagger
@@ -828,31 +789,26 @@ router.get(
  *         description: No autorizado
  */
 router.get(
-  "/IntMostrarEstudiantes",
+  '/IntMostrarEstudiantes',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.initMostrarEstudaintes,
+  AdminSharedController.initMostrarEstudaintes
+);
+
+router.get('/Semestres', verifyToken, verifyAdminTutor, AdminSharedController.obtenerSemestres);
+
+router.get(
+  '/exportarExcelEstudiantes',
+  verifyToken,
+  verifyAdminTutor,
+  AdminSharedController.exportarExcelEstudiantes
 );
 
 router.get(
-  "/Semestres",
+  '/exportarExcelActividades',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.obtenerSemestres,
-);
-
-router.get(
-  "/exportarExcelEstudiantes",
-  verifyToken,
-  verifyAdminTutor,
-  AdminSharedController.exportarExcelEstudiantes,
-);
-
-router.get(
-  "/exportarExcelActividades",
-  verifyToken,
-  verifyAdminTutor,
-  AdminSharedController.exportarExcelActividades,
+  AdminSharedController.exportarExcelActividades
 );
 
 /**
@@ -871,10 +827,10 @@ router.get(
  *         description: No autorizado.
  */
 router.get(
-  "/descargar-plantilla",
+  '/descargar-plantilla',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.descargarPlantillaExcel,
+  AdminSharedController.descargarPlantillaExcel
 );
 
 /**
@@ -893,18 +849,18 @@ router.get(
  *         description: No autorizado.
  */
 router.get(
-  "/descargar-plantilla-historicos",
+  '/descargar-plantilla-historicos',
   verifyToken,
   verifyAdminTutor,
-  AdminSharedController.descargarPlantillaHistoricos,
+  AdminSharedController.descargarPlantillaHistoricos
 );
 
 router.post(
-  "/excel",
+  '/excel',
   verifyToken,
   verifyAdmin,
-  upload.single("file"),
-  AdminSharedController.importarExcel,
+  upload.single('file'),
+  AdminSharedController.importarExcel
 );
 
 /**
@@ -935,11 +891,11 @@ router.post(
  *         description: No autorizado.
  */
 router.post(
-  "/importar-historicos",
+  '/importar-historicos',
   verifyToken,
   verifyAdminTutor,
-  upload.single("file"),
-  AdminSharedController.importarHistoricos,
+  upload.single('file'),
+  AdminSharedController.importarHistoricos
 );
 
 /**
@@ -957,12 +913,7 @@ router.post(
  *       403:
  *         description: No autorizado
  */
-router.get(
-  "/MostrarTutores",
-  verifyToken,
-  verifyAdmin,
-  AdminController.MostrarTutor,
-);
+router.get('/MostrarTutores', verifyToken, verifyAdmin, AdminController.MostrarTutor);
 
 /**
  * @swagger
@@ -986,11 +937,6 @@ router.get(
  *       403:
  *         description: No autorizado
  */
-router.delete(
-  "/DeleteTutores",
-  verifyToken,
-  verifyAdmin,
-  AdminController.DeleteTutor,
-);
+router.delete('/DeleteTutores', verifyToken, verifyAdmin, AdminController.DeleteTutor);
 
 module.exports = router;

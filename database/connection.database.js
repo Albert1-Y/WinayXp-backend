@@ -1,5 +1,5 @@
-require("dotenv/config");
-const { Pool } = require("pg");
+require('dotenv/config');
+const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -8,9 +8,9 @@ const db = new Pool({
   connectionString,
 });
 
-db.query("SELECT NOW()")
+db.query('SELECT NOW()')
   .then(() => {
-    console.log("DATABASE connected");
+    console.log('DATABASE connected');
   })
   .catch((error) => {
     console.log(error);

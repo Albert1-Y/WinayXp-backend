@@ -1,4 +1,4 @@
-const { db } = require("../database/connection.database.js");
+const { db } = require('../database/connection.database.js');
 
 const datotAdminTutor = async ({ id_persona }) => {
   const query = {
@@ -18,7 +18,7 @@ const datotAdminTutor = async ({ id_persona }) => {
       return null;
     }
   } catch (error) {
-    console.error("Error al obtener persona:", error);
+    console.error('Error al obtener persona:', error);
     return null;
   }
 };

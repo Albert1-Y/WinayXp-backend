@@ -1,7 +1,7 @@
-const { EstudianteModel } = require("../models/estudiante.model.js");
-const { UserModel } = require("../models/user.model.js");
-const { NivelModel } = require("../models/nivel.model.js");
-const ms = require("ms");
+const { EstudianteModel } = require('../models/estudiante.model.js');
+const { UserModel } = require('../models/user.model.js');
+const { NivelModel } = require('../models/nivel.model.js');
+const ms = require('ms');
 
 const InitEstudiante = async (req, res) => {
   try {
@@ -10,7 +10,7 @@ const InitEstudiante = async (req, res) => {
     console.log(data);
 
     if (!data) {
-      return res.status(404).json({ msg: "Estudiante no encontrado" });
+      return res.status(404).json({ msg: 'Estudiante no encontrado' });
     }
 
     const creditosTotales = Number(data.credito_total || 0);
@@ -36,10 +36,7 @@ const InitEstudiante = async (req, res) => {
       } else {
         progresoEnNivel = Math.min(
           100,
-          Math.max(
-            0,
-            ((creditosTotales - rangoInicio) / (rangoFin - rangoInicio)) * 100,
-          ),
+          Math.max(0, ((creditosTotales - rangoInicio) / (rangoFin - rangoInicio)) * 100)
         );
       }
     }
@@ -57,7 +54,7 @@ const InitEstudiante = async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({
-      msg: "Error server",
+      msg: 'Error server',
     });
   }
 };
@@ -72,9 +69,7 @@ const getActividadesAsistidas = async (req, res) => {
     return res.status(200).json(actividades);
   } catch (error) {
     console.log(error);
-    return res
-      .status(500)
-      .json({ msg: "Error al obtener historial de movimientos" });
+    return res.status(500).json({ msg: 'Error al obtener historial de movimientos' });
   }
 };
 
@@ -84,7 +79,7 @@ const confirmarNivelesVistos = async (req, res) => {
     const { id_nivel } = req.body || {};
 
     if (!id_nivel || Number.isNaN(Number(id_nivel))) {
-      return res.status(400).json({ msg: "id_nivel inválido" });
+      return res.status(400).json({ msg: 'id_nivel inválido' });
     }
 
     const ultimo = await EstudianteModel.marcarNivelVisto({
@@ -94,8 +89,8 @@ const confirmarNivelesVistos = async (req, res) => {
 
     return res.status(200).json({ ok: true, ultimo_nivel_visto: ultimo });
   } catch (error) {
-    console.error("Error al confirmar niveles vistos:", error);
-    return res.status(500).json({ msg: "Error al confirmar niveles vistos" });
+    console.error('Error al confirmar niveles vistos:', error);
+    return res.status(500).json({ msg: 'Error al confirmar niveles vistos' });
   }
 };
 
@@ -104,7 +99,7 @@ const listarNiveles = async (req, res) => {
     const id_persona = req.id_persona;
     const data = await EstudianteModel.DatosEstudianteInit({ id_persona });
     if (!data) {
-      return res.status(404).json({ msg: "Estudiante no encontrado" });
+      return res.status(404).json({ msg: 'Estudiante no encontrado' });
     }
 
     const niveles = await NivelModel.listarTodosLosNiveles();
@@ -122,10 +117,7 @@ const listarNiveles = async (req, res) => {
       } else {
         progresoEnNivel = Math.min(
           100,
-          Math.max(
-            0,
-            ((creditosTotales - rangoInicio) / (rangoFin - rangoInicio)) * 100,
-          ),
+          Math.max(0, ((creditosTotales - rangoInicio) / (rangoFin - rangoInicio)) * 100)
         );
       }
     }
@@ -141,8 +133,8 @@ const listarNiveles = async (req, res) => {
         : null,
     });
   } catch (error) {
-    console.error("Error al listar niveles:", error);
-    return res.status(500).json({ msg: "Error al obtener niveles" });
+    console.error('Error al listar niveles:', error);
+    return res.status(500).json({ msg: 'Error al obtener niveles' });
   }
 };
 
@@ -162,7 +154,7 @@ const EstudianteController = {
       return res.status(200).json(data);
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ msg: "Error server" });
+      return res.status(500).json({ msg: 'Error server' });
     }
   },
 };

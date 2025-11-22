@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
-const ms = require("ms");
+const jwt = require('jsonwebtoken');
+const ms = require('ms');
 
 function crearTokenCookie(res, payload) {
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -8,11 +8,11 @@ function crearTokenCookie(res, payload) {
 
   const maxAge = ms(process.env.COOKIE_MAXAGE);
 
-  res.cookie("auth_token", token, {
+  res.cookie('auth_token', token, {
     httpOnly: true,
     signed: true,
-    secure: process.env.COOKIE_SECURE === "true",
-    sameSite: "strict",
+    secure: process.env.COOKIE_SECURE === 'true',
+    sameSite: 'strict',
     maxAge: maxAge,
   });
 

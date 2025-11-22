@@ -1,4 +1,4 @@
-const { db } = require("../database/connection.database.js");
+const { db } = require('../database/connection.database.js');
 
 const saverRefreshToken = async (id_persona, token) => {
   const query = {
@@ -12,11 +12,11 @@ const saverRefreshToken = async (id_persona, token) => {
 
   try {
     const { rows } = await db.query(query);
-    console.log("Refresh token guardado correctamente.");
-    console.log("Resultado del insert:", rows);
+    console.log('Refresh token guardado correctamente.');
+    console.log('Resultado del insert:', rows);
     return rows[0].id;
   } catch (error) {
-    console.error("Error al guardar el refresh token:", error);
+    console.error('Error al guardar el refresh token:', error);
     throw error;
   }
 };
@@ -89,7 +89,7 @@ const rankingtop = async () => {
     console.log({ rows });
     return rows;
   } catch (error) {
-    console.error("Error al obtener el ranking:", error.message);
+    console.error('Error al obtener el ranking:', error.message);
     return [];
   }
 };
@@ -120,15 +120,15 @@ const rankingtopByCarrera = async (nombreCarrera) => {
     const { rows } = await db.query(query);
     return rows;
   } catch (error) {
-    console.error("Error al obtener el ranking por carrera:", error.message);
+    console.error('Error al obtener el ranking por carrera:', error.message);
     return [];
   }
 };
 const eliminarRtoken = async (id) => {
   try {
-    await db.query("DELETE FROM refresh_tokens WHERE id = $1", [id]);
+    await db.query('DELETE FROM refresh_tokens WHERE id = $1', [id]);
   } catch (error) {
-    console.error("Error al eliminar el refresh token:", error);
+    console.error('Error al eliminar el refresh token:', error);
     throw error;
   }
 };
@@ -137,26 +137,26 @@ const createPersona = async ({
   nombre_persona,
   email,
   rol,
-  dni = "[sin DNI]",
+  dni = '[sin DNI]',
   apellido,
   activo = false,
 }) => {
   const trimmedName = nombre_persona?.trim();
-  const finalNombre = trimmedName || nombre_persona || "[sin nombre]";
+  const finalNombre = trimmedName || nombre_persona || '[sin nombre]';
   let apellidoPersona = apellido?.trim();
 
   if (!apellidoPersona && trimmedName) {
-    const partes = trimmedName.split(" ");
+    const partes = trimmedName.split(' ');
     if (partes.length > 1) {
       apellidoPersona = partes[partes.length - 1];
     }
   }
 
   if (!apellidoPersona) {
-    apellidoPersona = "[sin apellido]";
+    apellidoPersona = '[sin apellido]';
   }
 
-  const dniValue = typeof dni === "string" ? dni.trim() : dni;
+  const dniValue = typeof dni === 'string' ? dni.trim() : dni;
 
   const query = {
     text: `
@@ -164,25 +164,13 @@ const createPersona = async ({
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
         `,
-    values: [
-      dniValue || "[sin DNI]",
-      finalNombre,
-      apellidoPersona,
-      email,
-      rol,
-      activo,
-    ],
+    values: [dniValue || '[sin DNI]', finalNombre, apellidoPersona, email, rol, activo],
   };
 
   return (await db.query(query)).rows[0];
 };
 
-const updatePersonaDatos = async ({
-  id_persona,
-  dni,
-  nombre_persona,
-  apellido,
-}) => {
+const updatePersonaDatos = async ({ id_persona, dni, nombre_persona, apellido }) => {
   const query = {
     text: `
             UPDATE persona
